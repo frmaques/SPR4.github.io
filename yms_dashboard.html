@@ -7,24 +7,26 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
     :root {
       --bg:       #0d0f18;
       --surface:  #161927;
       --surface2: #1f2235;
       --surface3: #272b42;
+      --ok:       #27ae60;
+      --ok-bg:    rgba(39,174,96,.12);
+      --alert:    #f0c040;
+      --alert-bg: rgba(240,192,64,.12);
+      --critical: #e67e22;
+      --crit-bg:  rgba(230,126,34,.12);
+      --offend:   #e74c3c;
+      --offend-bg:rgba(231,76,60,.12);
       --accent:   #FFE600;
-      --accent2:  #00B1EA;
-      --green:    #27ae60;
-      --red:      #e74c3c;
-      --orange:   #e67e22;
+      --blue:     #00B1EA;
       --text:     #e8eaf2;
       --text2:    #9499b5;
       --border:   rgba(255,255,255,0.07);
       --radius:   10px;
-      --shadow:   0 4px 24px rgba(0,0,0,0.4);
     }
-
     body {
       background: var(--bg);
       color: var(--text);
@@ -37,920 +39,857 @@
     header {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 12px 24px;
+      padding: 11px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: .3px;
-    }
-    .header-title span.badge {
-      background: var(--accent);
-      color: #111;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 4px;
-      letter-spacing: .5px;
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
       gap: 10px;
       flex-wrap: wrap;
+      position: sticky; top: 0; z-index: 100;
     }
-    #last-updated {
-      font-size: 12px;
-      color: var(--text2);
+    .logo { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; }
+    .badge { background: var(--accent); color: #111; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    #clock { font-size: 20px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+    #last-upd { font-size: 11px; color: var(--text2); }
+    .refresh-box {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 4px 10px; font-size: 12px;
     }
-    .spin {
-      display: inline-block;
-      animation: spin 1s linear infinite;
-      font-size: 15px;
+    .refresh-box label { color: var(--text2); }
+    #refresh-sel {
+      background: transparent; border: none; color: var(--text);
+      font-size: 12px; cursor: pointer; outline: none;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── REFRESH SELECTOR ── */
-    .refresh-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 4px 10px;
-      font-size: 12px;
-    }
-    .refresh-group label { color: var(--text2); }
-    #refresh-select {
-      background: transparent;
-      border: none;
-      color: var(--text);
-      font-size: 12px;
-      cursor: pointer;
-      outline: none;
-    }
-    #refresh-select option { background: var(--surface2); }
+    #refresh-sel option { background: var(--surface2); }
 
     /* ── FILTER BAR ── */
     .filter-bar {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 10px 24px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      padding: 9px 20px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     }
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    .fg { display: flex; align-items: center; gap: 5px; }
+    .fg label { font-size: 11px; color: var(--text2); white-space: nowrap; }
+    .fg input, .fg select {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 6px; padding: 5px 9px;
+      font-size: 12px; outline: none; transition: border-color .2s;
     }
-    .filter-group label {
-      font-size: 12px;
-      color: var(--text2);
-      white-space: nowrap;
-    }
-    .filter-group input,
-    .filter-group select {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-size: 12px;
-      outline: none;
-      transition: border-color .2s;
-    }
-    .filter-group input:focus,
-    .filter-group select:focus {
-      border-color: var(--accent2);
-    }
-    .filter-group input[type="date"] { cursor: pointer; color-scheme: dark; }
-    .filter-group select option { background: var(--surface2); }
-    .btn {
-      border: none;
-      border-radius: 6px;
-      padding: 5px 14px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity .15s;
-    }
-    .btn:hover { opacity: .85; }
-    .btn-primary { background: var(--accent); color: #111; }
-    .btn-ghost {
-      background: var(--surface3);
-      color: var(--text2);
-      border: 1px solid var(--border);
-    }
+    .fg input:focus, .fg select:focus { border-color: var(--blue); }
+    .fg input[type="date"] { cursor: pointer; color-scheme: dark; }
+    .fg select option { background: var(--surface2); }
+    .btn { border: none; border-radius: 6px; padding: 5px 13px; font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    .btn:hover { opacity: .8; }
+    .btn-yellow { background: var(--accent); color: #111; }
+    .btn-ghost { background: var(--surface3); color: var(--text2); border: 1px solid var(--border); }
 
-    /* ── MAIN CONTENT ── */
-    main {
-      padding: 20px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+    /* ── MAIN ── */
+    main { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
 
-    /* ── STATUS BANNER ── */
-    #status-banner {
+    /* ── ALERT BANNER ── */
+    #alert-banner {
       display: none;
-      background: var(--surface2);
-      border: 1px solid var(--border);
+      background: rgba(231,76,60,.18);
+      border: 1px solid var(--offend);
       border-radius: var(--radius);
-      padding: 14px 20px;
-      text-align: center;
-      color: var(--text2);
+      padding: 10px 16px;
       font-size: 13px;
+      font-weight: 600;
+      color: #ff8a80;
+      animation: pulse-border 1.5s ease-in-out infinite;
     }
-    #status-banner.error { border-color: var(--red); color: var(--red); display: block; }
-    #status-banner.loading { display: block; }
+    @keyframes pulse-border {
+      0%,100% { border-color: var(--offend); }
+      50%      { border-color: rgba(231,76,60,.3); }
+    }
+
+    /* ── STATUS ── */
+    #status-msg {
+      display: none; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 16px; text-align: center;
+      font-size: 13px; color: var(--text2);
+    }
+    #status-msg.err { border-color: var(--offend); color: #ff8a80; display: block; }
+    #status-msg.loading { display: block; }
 
     /* ── KPI CARDS ── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; }
+    .kpi {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 4px;
     }
-    .kpi-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      transition: border-color .2s;
-    }
-    .kpi-card:hover { border-color: var(--surface3); }
-    .kpi-card .kpi-label {
-      font-size: 11px;
-      color: var(--text2);
-      text-transform: uppercase;
-      letter-spacing: .6px;
-      font-weight: 600;
-    }
-    .kpi-card .kpi-value {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1;
-      color: var(--text);
-    }
-    .kpi-card .kpi-sub {
-      font-size: 11px;
-      color: var(--text2);
-    }
-    .kpi-card.accent-yellow .kpi-value { color: var(--accent); }
-    .kpi-card.accent-blue   .kpi-value { color: var(--accent2); }
-    .kpi-card.accent-green  .kpi-value { color: var(--green); }
-    .kpi-card.accent-orange .kpi-value { color: var(--orange); }
+    .kpi-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+    .kpi-val { font-size: 28px; font-weight: 700; line-height: 1.1; }
+    .kpi-sub { font-size: 10px; color: var(--text2); }
+    .kpi.c-ok     .kpi-val { color: var(--ok); }
+    .kpi.c-alert  .kpi-val { color: var(--alert); }
+    .kpi.c-crit   .kpi-val { color: var(--critical); }
+    .kpi.c-offend .kpi-val { color: var(--offend); }
+    .kpi.c-blue   .kpi-val { color: var(--blue); }
 
-    /* ── CHART GRID ── */
-    .chart-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 14px;
+    /* ── SECTION TITLE ── */
+    .sec-title {
+      font-size: 12px; color: var(--text2); text-transform: uppercase;
+      letter-spacing: .5px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
     }
-    .chart-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-    }
-    .chart-card h3 {
-      font-size: 12px;
-      color: var(--text2);
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      font-weight: 600;
-      margin-bottom: 14px;
-    }
-    .chart-wrap {
-      position: relative;
-      height: 220px;
+    .sec-title .cnt {
+      background: var(--surface3); border-radius: 20px;
+      padding: 2px 9px; font-size: 11px; color: var(--text2); font-weight: 600;
     }
 
-    /* ── TABLE ── */
-    .table-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
+    /* ── TABLE CARD ── */
+    .table-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
     }
-    .table-section h3 {
-      font-size: 12px;
-      color: var(--text2);
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      font-weight: 600;
-      padding: 16px 20px 12px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    #record-count {
-      background: var(--surface3);
-      border-radius: 20px;
-      padding: 2px 10px;
-      font-size: 11px;
-      color: var(--text2);
+    .table-head {
+      padding: 12px 16px 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
     }
     .table-scroll { overflow-x: auto; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
     thead th {
-      background: var(--surface2);
-      padding: 10px 14px;
-      text-align: left;
-      font-size: 11px;
-      color: var(--text2);
-      letter-spacing: .3px;
-      white-space: nowrap;
-      cursor: pointer;
-      user-select: none;
-      position: sticky;
-      top: 0;
+      background: var(--surface2); padding: 9px 13px; text-align: left;
+      font-size: 11px; color: var(--text2); letter-spacing: .3px;
+      white-space: nowrap; cursor: pointer; user-select: none;
     }
     thead th:hover { color: var(--text); }
-    thead th .sort-arrow { margin-left: 4px; opacity: .4; }
-    thead th.sorted-asc .sort-arrow::after  { content: '↑'; opacity: 1; }
-    thead th.sorted-desc .sort-arrow::after { content: '↓'; opacity: 1; }
-    thead th:not(.sorted-asc):not(.sorted-desc) .sort-arrow::after { content: '↕'; }
-    tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background .1s;
-    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: var(--surface2); }
-    tbody td {
-      padding: 9px 14px;
-      white-space: nowrap;
-      color: var(--text);
+    tbody td { padding: 9px 13px; white-space: nowrap; }
+    .no-data { text-align: center; padding: 32px; color: var(--text2); font-size: 13px; }
+
+    /* ── ROW STATUS COLORS ── */
+    tbody tr.row-ok     { border-left: 3px solid var(--ok); }
+    tbody tr.row-alert  { border-left: 3px solid var(--alert); }
+    tbody tr.row-crit   { border-left: 3px solid var(--critical); }
+    tbody tr.row-offend { border-left: 3px solid var(--offend); background: rgba(231,76,60,.05); }
+    tbody tr.row-offend:hover { background: rgba(231,76,60,.1); }
+
+    /* ── STATUS BADGE ── */
+    .badge-status {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
     }
-    .tag {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
+    .badge-ok     { background: var(--ok-bg);    color: var(--ok); }
+    .badge-alert  { background: var(--alert-bg); color: var(--alert); }
+    .badge-crit   { background: var(--crit-bg);  color: var(--critical); }
+    .badge-offend { background: var(--offend-bg);color: var(--offend); animation: flash 1.2s ease-in-out infinite; }
+    @keyframes flash { 0%,100%{opacity:1} 50%{opacity:.55} }
+
+    /* ── TIMER CELL ── */
+    .timer-ok     { color: var(--ok);       font-weight: 700; font-size: 14px; }
+    .timer-alert  { color: var(--alert);    font-weight: 700; font-size: 14px; }
+    .timer-crit   { color: var(--critical); font-weight: 700; font-size: 14px; }
+    .timer-offend { color: var(--offend);   font-weight: 800; font-size: 15px; animation: flash 1.2s ease-in-out infinite; }
+
+    /* ── COLLAPSIBLE HISTORY ── */
+    .hist-toggle {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 16px; cursor: pointer;
+      font-size: 12px; color: var(--text2); font-weight: 600; text-align: left;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: background .15s;
     }
-    .tag-lm  { background: rgba(0,177,234,.15); color: var(--accent2); }
-    .tag-mm  { background: rgba(255,230,0,.12); color: var(--accent); }
-    .tag-in  { background: rgba(39,174,96,.15);  color: var(--green); }
-    .tag-out { background: rgba(231,76,60,.12);  color: var(--red); }
-    .no-data {
-      text-align: center;
-      padding: 40px;
-      color: var(--text2);
-      font-size: 13px;
-    }
+    .hist-toggle:hover { background: var(--surface3); }
+    .hist-toggle .arrow { transition: transform .2s; }
+    .hist-toggle.open .arrow { transform: rotate(180deg); }
+    #hist-section { display: none; }
 
     /* ── FOOTER ── */
-    footer {
-      padding: 16px 24px;
-      text-align: center;
-      font-size: 11px;
-      color: var(--text2);
-      border-top: 1px solid var(--border);
-    }
+    footer { padding: 12px 20px; text-align: center; font-size: 11px; color: var(--text2); border-top: 1px solid var(--border); }
   </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════ HEADER ══════════════════════════════ -->
+<!-- HEADER -->
 <header>
-  <div class="header-title">
-    🚛 YMS Dashboard <span class="badge">SPR4</span>
-  </div>
+  <div class="logo">🚛 YMS Monitor <span class="badge">SPR4</span></div>
   <div class="header-right">
-    <span id="last-updated">—</span>
-    <div class="refresh-group">
-      <label>🔄 Auto:</label>
-      <select id="refresh-select">
+    <span id="clock">--:--:--</span>
+    <span id="last-upd">—</span>
+    <div class="refresh-box">
+      <label>🔄</label>
+      <select id="refresh-sel">
         <option value="0">Manual</option>
-        <option value="10">10 seg</option>
+        <option value="10" selected>10 seg</option>
         <option value="30">30 seg</option>
         <option value="60">1 min</option>
         <option value="300">5 min</option>
       </select>
     </div>
+    <button class="btn btn-yellow" id="btn-refresh">↻ Atualizar</button>
   </div>
 </header>
 
-<!-- ══════════════════════════════ FILTERS ══════════════════════════════ -->
+<!-- FILTROS -->
 <div class="filter-bar">
-  <div class="filter-group">
-    <label>📅 De:</label>
-    <input type="date" id="filter-date-start">
-  </div>
-  <div class="filter-group">
-    <label>Até:</label>
-    <input type="date" id="filter-date-end">
-  </div>
-  <div class="filter-group">
-    <label>Mile:</label>
-    <select id="filter-mile">
+  <div class="fg">
+    <label>Tipo:</label>
+    <select id="f-tipo">
       <option value="">Todos</option>
-      <option value="Last Mile">Last Mile</option>
-      <option value="Middle Mile">Middle Mile</option>
+      <option value="last_mile" selected>Last Mile</option>
+      <option value="middle_mile">Middle Mile</option>
     </select>
   </div>
-  <div class="filter-group">
+  <div class="fg">
+    <label>📅 De:</label>
+    <input type="date" id="f-de">
+  </div>
+  <div class="fg">
+    <label>Até:</label>
+    <input type="date" id="f-ate">
+  </div>
+  <div class="fg">
     <label>Operação:</label>
-    <select id="filter-operacao">
-      <option value="">Todos</option>
+    <select id="f-op">
+      <option value="">Todas</option>
       <option value="OUTBOUND">OUTBOUND</option>
       <option value="INBOUND">INBOUND</option>
     </select>
   </div>
-  <div class="filter-group">
+  <div class="fg">
     <label>Transportadora:</label>
-    <select id="filter-transp">
-      <option value="">Todas</option>
-    </select>
+    <select id="f-transp"><option value="">Todas</option></select>
   </div>
   <button class="btn btn-ghost" id="btn-clear">✕ Limpar</button>
-  <button class="btn btn-primary" id="btn-refresh">↻ Atualizar</button>
 </div>
 
-<!-- ══════════════════════════════ MAIN ══════════════════════════════ -->
+<!-- MAIN -->
 <main>
-
   <!-- Status -->
-  <div id="status-banner" class="loading">⏳ Carregando dados...</div>
+  <div id="status-msg" class="loading">⏳ Carregando dados...</div>
+
+  <!-- Banner de alerta -->
+  <div id="alert-banner"></div>
 
   <!-- KPIs -->
-  <div class="kpi-grid">
-    <div class="kpi-card accent-yellow">
-      <div class="kpi-label">Total de Registros</div>
-      <div class="kpi-value" id="kpi-total">—</div>
-      <div class="kpi-sub">veículos no período</div>
-    </div>
-    <div class="kpi-card accent-blue">
+  <div class="kpi-row">
+    <div class="kpi c-blue">
       <div class="kpi-label">No Pátio Agora</div>
-      <div class="kpi-value" id="kpi-patio">—</div>
-      <div class="kpi-sub">checkin sem checkout</div>
+      <div class="kpi-val" id="k-patio">—</div>
+      <div class="kpi-sub">veículos presentes</div>
     </div>
-    <div class="kpi-card accent-green">
-      <div class="kpi-label">Saídos</div>
-      <div class="kpi-value" id="kpi-saidos">—</div>
-      <div class="kpi-sub">checkout registrado</div>
+    <div class="kpi c-ok">
+      <div class="kpi-label">🟢 Em dia</div>
+      <div class="kpi-val" id="k-ok">—</div>
+      <div class="kpi-sub">&lt; 20 min</div>
     </div>
-    <div class="kpi-card accent-orange">
-      <div class="kpi-label">Tempo Médio no Pátio</div>
-      <div class="kpi-value" id="kpi-tempo">—</div>
-      <div class="kpi-sub">minutos (veíc. saídos)</div>
+    <div class="kpi c-alert">
+      <div class="kpi-label">⚠️ Alerta</div>
+      <div class="kpi-val" id="k-alert">—</div>
+      <div class="kpi-sub">20 – 24 min</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Transportadoras</div>
-      <div class="kpi-value" id="kpi-transp">—</div>
-      <div class="kpi-sub">distintas no período</div>
+    <div class="kpi c-crit">
+      <div class="kpi-label">🔴 Crítico</div>
+      <div class="kpi-val" id="k-crit">—</div>
+      <div class="kpi-sub">25 – 29 min</div>
     </div>
-  </div>
-
-  <!-- Charts row 1 -->
-  <div class="chart-grid">
-    <div class="chart-card">
-      <h3>🏢 Veículos por Transportadora (Top 8)</h3>
-      <div class="chart-wrap"><canvas id="chart-transp"></canvas></div>
+    <div class="kpi c-offend">
+      <div class="kpi-label">❌ Ofensores</div>
+      <div class="kpi-val" id="k-offend">—</div>
+      <div class="kpi-sub">≥ 30 min</div>
     </div>
-    <div class="chart-card">
-      <h3>📦 Last Mile vs Middle Mile</h3>
-      <div class="chart-wrap"><canvas id="chart-mile"></canvas></div>
+    <div class="kpi">
+      <div class="kpi-label">Saídos hoje</div>
+      <div class="kpi-val" id="k-saidos" style="color:var(--text2)">—</div>
+      <div class="kpi-sub">com checkout</div>
     </div>
-    <div class="chart-card">
-      <h3>🔄 INBOUND vs OUTBOUND</h3>
-      <div class="chart-wrap"><canvas id="chart-operacao"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Charts row 2 -->
-  <div class="chart-grid">
-    <div class="chart-card">
-      <h3>⏱️ Tempo Médio no Pátio por Transportadora — min (Top 8)</h3>
-      <div class="chart-wrap"><canvas id="chart-tempo"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <h3>🚗 Veículos por Tipo</h3>
-      <div class="chart-wrap"><canvas id="chart-tipo"></canvas></div>
+    <div class="kpi">
+      <div class="kpi-label">Média permanência</div>
+      <div class="kpi-val" id="k-media" style="color:var(--text2)">—</div>
+      <div class="kpi-sub">min (saídos)</div>
     </div>
   </div>
 
-  <!-- Table -->
-  <div class="table-section">
-    <h3>
-      📋 Registros de Acesso
-      <span id="record-count">0 registros</span>
-    </h3>
+  <!-- Veículos NO PÁTIO -->
+  <div class="sec-title">
+    🏁 Veículos no Pátio Agora
+    <span class="cnt" id="cnt-patio">0</span>
+  </div>
+  <div class="table-card">
     <div class="table-scroll">
       <table>
         <thead>
-          <tr id="table-header">
-            <th data-col="placa">Placa <span class="sort-arrow"></span></th>
-            <th data-col="transportadora">Transportadora <span class="sort-arrow"></span></th>
-            <th data-col="tipo_veiculo">Tipo Veículo <span class="sort-arrow"></span></th>
-            <th data-col="mile">Mile <span class="sort-arrow"></span></th>
-            <th data-col="operacao">Operação <span class="sort-arrow"></span></th>
-            <th data-col="checkin">Checkin <span class="sort-arrow"></span></th>
-            <th data-col="checkout">Checkout <span class="sort-arrow"></span></th>
-            <th data-col="tempo_min">Tempo (min) <span class="sort-arrow"></span></th>
-            <th data-col="rota_id">Rota ID <span class="sort-arrow"></span></th>
+          <tr>
+            <th>Status</th>
+            <th>⏱ Tempo</th>
+            <th>Placa</th>
+            <th>Transportadora</th>
+            <th>Modal</th>
+            <th>Tipo</th>
+            <th>Operação</th>
+            <th>Entrada</th>
           </tr>
         </thead>
-        <tbody id="table-body">
-          <tr><td colspan="9" class="no-data">⏳ Carregando...</td></tr>
+        <tbody id="tb-patio">
+          <tr><td colspan="8" class="no-data">⏳ Carregando...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
+  <!-- Histórico de saídas (colapsível) -->
+  <button class="hist-toggle" id="hist-btn" onclick="toggleHist()">
+    <span>📋 Histórico de Saídas — veículos que já saíram no período</span>
+    <span class="arrow">▼</span>
+  </button>
+  <div id="hist-section">
+    <div class="table-card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Transportadora</th>
+              <th>Modal</th>
+              <th>Tipo</th>
+              <th>Operação</th>
+              <th>Entrada</th>
+              <th>Saída</th>
+              <th>Permanência (min)</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody id="tb-hist">
+            <tr><td colspan="9" class="no-data">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </main>
 
-<footer>YMS Dashboard SPR4 · Dados via Google Sheets · Atualizado automaticamente</footer>
+<footer>YMS SPR4 · Monitor Operacional · Atualização via Google Sheets</footer>
 
 <script>
-  /* ═══════════════════════════════════════════════════════════
-     CONFIGURAÇÃO
-  ═══════════════════════════════════════════════════════════ */
-  const APPS_SCRIPT_URL =
-    'https://script.google.com/a/macros/mercadolivre.com/s/' +
-    'AKfycbzu4JDLf8WSR3WQZNT_W1vdobpYEbxGfT8GFpl-Za8XWhCfuyr3lwUnEsTgKS-e-sqx/exec';
+/* ═══════════════════════════════════════════════════════
+   CONFIGURAÇÃO
+═══════════════════════════════════════════════════════ */
+const APPS_SCRIPT_URL =
+  'https://script.google.com/a/macros/mercadolivre.com/s/' +
+  'AKfycbzu4JDLf8WSR3WQZNT_W1vdobpYEbxGfT8GFpl-Za8XWhCfuyr3lwUnEsTgKS-e-sqx/exec';
 
-  /* ═══════════════════════════════════════════════════════════
-     ESTADO
-  ═══════════════════════════════════════════════════════════ */
-  let allData      = [];   // dados brutos normalizados
-  let filteredData = [];   // dados após filtros
-  let charts       = {};   // instâncias Chart.js
-  let refreshTimer = null;
-  let sortState    = { col: null, dir: 'asc' };
+const LIMIT_ALERT   = 20;   // min — aviso amarelo
+const LIMIT_CRIT    = 25;   // min — crítico laranja
+const LIMIT_OFFEND  = 30;   // min — ofensor vermelho
 
-  /* ═══════════════════════════════════════════════════════════
-     NORMALIZAÇÃO DE COLUNAS
-     Garante que nomes de coluna da planilha sejam mapeados
-     independente de maiúsculas, acentos ou underscores.
-  ═══════════════════════════════════════════════════════════ */
-  const COL_MAP = {
-    placa:          ['placa', 'plate', 'veículo', 'veiculo'],
-    transportadora: ['transportadora', 'carrier', 'empresa'],
-    tipo_veiculo:   ['tipo_veiculo', 'tipo veiculo', 'tipoveiculo', 'tipo', 'vehicle_type'],
-    mile:           ['mile', 'segmento', 'segment'],
-    operacao:       ['operacao', 'operação', 'operation', 'tipo_operacao'],
-    checkin:        ['checkin', 'check_in', 'entrada', 'data_checkin', 'dt_checkin'],
-    checkout:       ['checkout', 'check_out', 'saida', 'saída', 'data_checkout', 'dt_checkout'],
-    tempo_min:      ['tempo_min', 'tempo (min)', 'tempo', 'minutes', 'minutos', 'permanencia'],
-    rota_id:        ['rota_id', 'rota id', 'rotaid', 'rota', 'route_id'],
+/* ═══════════════════════════════════════════════════════
+   ESTADO
+═══════════════════════════════════════════════════════ */
+let allData     = [];
+let filteredIn  = [];   // no pátio (sem checkout)
+let filteredOut = [];   // já saíram (com checkout)
+let timerUI     = null; // setInterval para atualizar timers na tela
+let refreshData = null; // setInterval para refetch de dados
+
+/* ═══════════════════════════════════════════════════════
+   RELÓGIO EM TEMPO REAL
+═══════════════════════════════════════════════════════ */
+(function startClock() {
+  const el = document.getElementById('clock');
+  const tick = () => {
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString('pt-BR');
   };
+  tick();
+  setInterval(tick, 1000);
+})();
 
-  function normalizeKey(raw) {
-    const k = String(raw).toLowerCase().trim()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/\s+/g, '_');
-    for (const [canon, aliases] of Object.entries(COL_MAP)) {
-      if (aliases.includes(k) || k === canon) return canon;
-    }
-    return k;
+/* ═══════════════════════════════════════════════════════
+   PARSE DE DATA — suporta ISO e formato BR
+═══════════════════════════════════════════════════════ */
+function parseDate(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  if (!s || s === 'null' || s === 'undefined') return null;
+
+  // ISO: 2026-05-15T09:18:01.000Z
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return new Date(s);
+
+  // BR: 15/05/2026 06:18:01
+  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}:\d{2}:\d{2})?/);
+  if (br) {
+    const base = `${br[3]}-${br[2]}-${br[1]}`;
+    return new Date(br[4] ? `${base}T${br[4]}` : base);
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     PARSE DA RESPOSTA DO APPS SCRIPT
-     Suporta: array de objetos, array de arrays (primeira linha
-     = cabeçalho), ou objeto com campo data/values/rows.
-  ═══════════════════════════════════════════════════════════ */
-  function parseResponse(raw) {
-    let rows = raw;
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
 
-    // Desembrulha wrapper {data:[], values:[], rows:[], result:[]}
-    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-      rows = raw.data || raw.values || raw.rows || raw.result || [];
-    }
-    if (!Array.isArray(rows) || rows.length === 0) return [];
+function toISODay(val) {
+  const d = parseDate(val);
+  return d ? d.toISOString().slice(0, 10) : '';
+}
 
-    // Array de arrays → normaliza cabeçalho da primeira linha
-    if (Array.isArray(rows[0])) {
-      const headers = rows[0].map(normalizeKey);
-      return rows.slice(1).map(row => {
-        const obj = {};
-        headers.forEach((h, i) => { obj[h] = row[i] ?? ''; });
-        return obj;
-      });
-    }
+function fmtTime(val) {
+  const d = parseDate(val);
+  if (!d) return '—';
+  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
 
-    // Array de objetos → normaliza chaves
-    return rows.map(obj => {
+/* ═══════════════════════════════════════════════════════
+   MAPEAMENTO DE COLUNAS — nomes reais da planilha
+═══════════════════════════════════════════════════════ */
+function remapRow(raw) {
+  // raw tem chaves em lowercase do Apps Script
+  const g = k => {
+    if (raw[k] !== undefined && raw[k] !== null) return raw[k];
+    // tenta variações com underscores vs pontos
+    const alt = k.replace(/\./g, '_');
+    return raw[alt] !== undefined ? raw[alt] : '';
+  };
+
+  const transp   = g('request.carrier.name') || g('request_carrier_name') || '';
+  const placa    = g('request.vehicle.license_plate') || g('request_vehicle_license_plate') || '';
+  const modal    = g('request.vehicle.description') || g('request_vehicle_description') || '';
+  const tipo     = String(g('purpose.mile') || g('purpose_mile') || '').toLowerCase();
+  const operacao = String(g('purpose.process') || g('purpose_process') || '').toUpperCase();
+  const checkin  = g('gate_checkin_date') || '';
+  const checkout = g('gate.checkout.date') || g('gate_checkout_date') || '';
+  const tempMin  = g('gate.facility_stay_time_minutes') || g('gate_facility_stay_time_minutes');
+
+  return { transp, placa, modal, tipo, operacao, checkin, checkout, tempMin };
+}
+
+/* ═══════════════════════════════════════════════════════
+   PARSE DA RESPOSTA DO APPS SCRIPT
+   - Suporta array de arrays (headers na linha 0)
+   - Ignora linhas de descrição (placa = texto descritivo)
+═══════════════════════════════════════════════════════ */
+function parseResponse(raw) {
+  let rows = raw;
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    rows = raw.data || raw.values || raw.rows || raw.result || [];
+  }
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+
+  let objects = [];
+
+  if (Array.isArray(rows[0])) {
+    // Array de arrays — primeira linha é header
+    const headers = rows[0].map(h => String(h || '').toLowerCase().trim());
+    objects = rows.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+      return obj;
+    });
+  } else {
+    objects = rows.map(obj => {
       const n = {};
       for (const [k, v] of Object.entries(obj)) {
-        n[normalizeKey(k)] = v;
+        n[String(k).toLowerCase().trim()] = v;
       }
       return n;
     });
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     CÁLCULO DE TEMPO (min)
-     Tenta extrair tempo_min do campo ou calcula checkin-checkout.
-  ═══════════════════════════════════════════════════════════ */
-  function calcTempo(row) {
-    const raw = row.tempo_min;
-    if (raw !== undefined && raw !== '' && !isNaN(Number(raw))) {
-      return Math.round(Number(raw));
-    }
-    if (row.checkin && row.checkout) {
-      const ci = new Date(String(row.checkin).replace(' ', 'T'));
-      const co = new Date(String(row.checkout).replace(' ', 'T'));
-      if (!isNaN(ci) && !isNaN(co) && co > ci) {
-        return Math.round((co - ci) / 60000);
-      }
-    }
-    return null;
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     FETCH DE DADOS
-  ═══════════════════════════════════════════════════════════ */
-  function fetchData() {
-    showStatus('loading', '⏳ Carregando dados...');
-    showSpinner(true);
-
-    // JSONP — evita bloqueio CORS em chamadas cross-origin do GitHub Pages
-    const cbName = '_ymsCB_' + Date.now();
-    const script = document.createElement('script');
-
-    const cleanup = () => {
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    };
-
-    window[cbName] = function(raw) {
-      cleanup();
-      try {
-        const parsed = parseResponse(raw);
-        allData = parsed.map(r => ({
-          ...r,
-          _tempo_min: calcTempo(r),
-          _mile:     String(r.mile     || '').trim(),
-          _operacao: String(r.operacao || '').toUpperCase().trim(),
-        }));
-        populateTranspFilter();
-        applyFilters();
-        hideStatus();
-        setLastUpdated();
-      } catch (e) {
-        showStatus('error', '⚠️ Erro ao processar os dados recebidos.');
-        console.error('[YMS] Parse error:', e.message);
-      } finally {
-        showSpinner(false);
-      }
-    };
-
-    script.onerror = function() {
-      cleanup();
-      showSpinner(false);
-      showStatus('error', '⚠️ Erro ao carregar dados. Verifique o acesso ao Apps Script.');
-      console.error('[YMS] JSONP script load failed');
-    };
-
-    // Timeout de segurança — 15 s
-    const timer = setTimeout(() => {
-      cleanup();
-      showSpinner(false);
-      showStatus('error', '⚠️ Tempo esgotado ao carregar dados.');
-    }, 15000);
-
-    window[cbName] = (function(orig) {
-      return function(raw) {
-        clearTimeout(timer);
-        orig(raw);
-      };
-    })(window[cbName]);
-
-    script.src = APPS_SCRIPT_URL + '?callback=' + cbName;
-    document.head.appendChild(script);
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     FILTROS
-  ═══════════════════════════════════════════════════════════ */
-  function populateTranspFilter() {
-    const sel = document.getElementById('filter-transp');
-    const current = sel.value;
-    // Remove opções dinâmicas anteriores
-    while (sel.options.length > 1) sel.remove(1);
-    const transpSet = new Set(allData.map(r => String(r.transportadora || '').trim()).filter(Boolean));
-    [...transpSet].sort().forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t;
-      opt.textContent = t;      // textContent evita XSS
-      sel.appendChild(opt);
+  return objects
+    .map(remapRow)
+    // Remove linhas de descrição ou inválidas (sem placa real)
+    .filter(r => {
+      const p = String(r.placa).trim();
+      return p && p.length > 2 && p !== 'PLACA' && !/^[A-Z ]+$/.test(p);
     });
-    if ([...transpSet].includes(current)) sel.value = current;
-  }
+}
 
-  function getFilters() {
-    return {
-      dateStart: document.getElementById('filter-date-start').value,
-      dateEnd:   document.getElementById('filter-date-end').value,
-      mile:      document.getElementById('filter-mile').value,
-      operacao:  document.getElementById('filter-operacao').value,
-      transp:    document.getElementById('filter-transp').value,
-    };
-  }
+/* ═══════════════════════════════════════════════════════
+   STATUS DE TEMPO
+═══════════════════════════════════════════════════════ */
+function getMinutesLive(checkin) {
+  const d = parseDate(checkin);
+  if (!d) return null;
+  return Math.floor((Date.now() - d.getTime()) / 60000);
+}
 
-  function applyFilters() {
-    const f = getFilters();
-    filteredData = allData.filter(r => {
-      // Filtro de data por checkin
-      if (f.dateStart || f.dateEnd) {
-        const rawDate = String(r.checkin || '').split('T')[0].split(' ')[0];
-        if (f.dateStart && rawDate < f.dateStart) return false;
-        if (f.dateEnd   && rawDate > f.dateEnd)   return false;
-      }
-      if (f.mile    && r._mile     !== f.mile)    return false;
-      if (f.operacao && r._operacao !== f.operacao) return false;
-      if (f.transp  && String(r.transportadora || '').trim() !== f.transp) return false;
-      return true;
-    });
-    updateKPIs();
-    updateCharts();
-    updateTable();
-  }
+function getStatus(min) {
+  if (min === null) return 'unknown';
+  if (min >= LIMIT_OFFEND) return 'offend';
+  if (min >= LIMIT_CRIT)   return 'crit';
+  if (min >= LIMIT_ALERT)  return 'alert';
+  return 'ok';
+}
 
-  document.getElementById('btn-clear').addEventListener('click', () => {
-    document.getElementById('filter-date-start').value = '';
-    document.getElementById('filter-date-end').value   = '';
-    document.getElementById('filter-mile').value       = '';
-    document.getElementById('filter-operacao').value   = '';
-    document.getElementById('filter-transp').value     = '';
-    applyFilters();
+const STATUS_LABEL = {
+  ok:      '🟢 Em dia',
+  alert:   '⚠️ Alerta',
+  crit:    '🔴 Crítico',
+  offend:  '❌ Ofensor',
+  unknown: '—',
+};
+
+/* ═══════════════════════════════════════════════════════
+   FETCH DE DADOS (JSONP)
+═══════════════════════════════════════════════════════ */
+function fetchData() {
+  showStatus('loading', '⏳ Atualizando dados...');
+
+  const cbName = '_yms_' + Date.now();
+  const script = document.createElement('script');
+
+  const cleanup = () => {
+    delete window[cbName];
+    if (script.parentNode) script.parentNode.removeChild(script);
+  };
+
+  const timeout = setTimeout(() => {
+    cleanup();
+    showStatus('err', '⚠️ Tempo esgotado ao buscar dados.');
+  }, 15000);
+
+  window[cbName] = function(raw) {
+    clearTimeout(timeout);
+    cleanup();
+    try {
+      const parsed = parseResponse(raw);
+      allData = parsed;
+      populateTranspFilter();
+      applyFilters();
+      hideStatus();
+      document.getElementById('last-upd').textContent =
+        'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+    } catch (e) {
+      showStatus('err', '⚠️ Erro ao processar dados recebidos.');
+      console.error('[YMS]', e);
+    }
+  };
+
+  script.onerror = () => {
+    clearTimeout(timeout);
+    cleanup();
+    showStatus('err', '⚠️ Erro ao conectar ao Apps Script.');
+  };
+
+  script.src = APPS_SCRIPT_URL + '?callback=' + cbName;
+  document.head.appendChild(script);
+}
+
+/* ═══════════════════════════════════════════════════════
+   FILTROS
+═══════════════════════════════════════════════════════ */
+function populateTranspFilter() {
+  const sel = document.getElementById('f-transp');
+  const cur = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+  const set = new Set(allData.map(r => r.transp).filter(Boolean));
+  [...set].sort().forEach(t => {
+    const o = document.createElement('option');
+    o.value = t;
+    o.textContent = t;  // textContent — XSS safe
+    sel.appendChild(o);
   });
-  document.getElementById('btn-refresh').addEventListener('click', fetchData);
-  ['filter-date-start','filter-date-end','filter-mile','filter-operacao','filter-transp']
-    .forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
+  if ([...set].includes(cur)) sel.value = cur;
+}
 
-  /* ═══════════════════════════════════════════════════════════
-     KPIs
-  ═══════════════════════════════════════════════════════════ */
-  function updateKPIs() {
-    const total   = filteredData.length;
-    const patio   = filteredData.filter(r => !r.checkout || String(r.checkout).trim() === '').length;
-    const saidos  = filteredData.filter(r =>  r.checkout && String(r.checkout).trim() !== '').length;
-    const comTempo = filteredData.filter(r => r._tempo_min !== null);
-    const avgTempo = comTempo.length
-      ? Math.round(comTempo.reduce((s, r) => s + r._tempo_min, 0) / comTempo.length)
-      : null;
-    const transpCount = new Set(filteredData.map(r => String(r.transportadora || '').trim()).filter(Boolean)).size;
+function getFilters() {
+  return {
+    tipo:   document.getElementById('f-tipo').value,
+    de:     document.getElementById('f-de').value,
+    ate:    document.getElementById('f-ate').value,
+    op:     document.getElementById('f-op').value,
+    transp: document.getElementById('f-transp').value,
+  };
+}
 
-    setText('kpi-total',  total);
-    setText('kpi-patio',  patio);
-    setText('kpi-saidos', saidos);
-    setText('kpi-tempo',  avgTempo !== null ? avgTempo : '—');
-    setText('kpi-transp', transpCount);
-  }
+function applyFilters() {
+  const f = getFilters();
 
-  /* ═══════════════════════════════════════════════════════════
-     CHARTS
-  ═══════════════════════════════════════════════════════════ */
-  const CHART_COLORS = [
-    '#FFE600','#00B1EA','#27ae60','#e67e22','#9b59b6',
-    '#e74c3c','#1abc9c','#3498db','#f39c12','#2ecc71',
-  ];
-  const DOUGHNUT_COLORS = ['#00B1EA','#FFE600','#27ae60','#e67e22','#9b59b6'];
-
-  Chart.defaults.color = '#9499b5';
-  Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
-  Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-  Chart.defaults.font.size = 11;
-
-  function getOrCreate(id, type, data, options = {}) {
-    if (charts[id]) charts[id].destroy();
-    const ctx = document.getElementById(id).getContext('2d');
-    charts[id] = new Chart(ctx, { type, data, options });
-  }
-
-  function topN(arr, keyFn, n = 8) {
-    const counts = {};
-    arr.forEach(r => {
-      const k = String(keyFn(r) || '').trim() || '(vazio)';
-      counts[k] = (counts[k] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, n);
-  }
-
-  function updateCharts() {
-    const base = {
-      scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9499b5' } },
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9499b5' }, beginAtZero: true },
-      },
-      plugins: { legend: { display: false } },
-      responsive: true,
-      maintainAspectRatio: false,
-    };
-
-    // 1 — Veículos por Transportadora (Top 8)
-    const transpTop = topN(filteredData, r => r.transportadora);
-    getOrCreate('chart-transp', 'bar', {
-      labels: transpTop.map(([k]) => k),
-      datasets: [{ data: transpTop.map(([,v]) => v), backgroundColor: CHART_COLORS, borderRadius: 4 }],
-    }, { ...base, plugins: { ...base.plugins, legend: { display: false } } });
-
-    // 2 — Last Mile vs Middle Mile
-    const mileCounts = {};
-    filteredData.forEach(r => {
-      const k = r._mile || 'Outro';
-      mileCounts[k] = (mileCounts[k] || 0) + 1;
-    });
-    getOrCreate('chart-mile', 'doughnut', {
-      labels: Object.keys(mileCounts),
-      datasets: [{ data: Object.values(mileCounts), backgroundColor: DOUGHNUT_COLORS, borderWidth: 0, hoverOffset: 6 }],
-    }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9499b5', padding: 10, font: { size: 11 } } } } });
-
-    // 3 — INBOUND vs OUTBOUND
-    const opCounts = {};
-    filteredData.forEach(r => {
-      const k = r._operacao || 'Outro';
-      opCounts[k] = (opCounts[k] || 0) + 1;
-    });
-    getOrCreate('chart-operacao', 'doughnut', {
-      labels: Object.keys(opCounts),
-      datasets: [{ data: Object.values(opCounts), backgroundColor: ['#27ae60','#e74c3c','#e67e22'], borderWidth: 0, hoverOffset: 6 }],
-    }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9499b5', padding: 10, font: { size: 11 } } } } });
-
-    // 4 — Tempo Médio por Transportadora (Top 8, somente saídos)
-    const saidos = filteredData.filter(r => r._tempo_min !== null);
-    const tempoMap = {};
-    const tempoCount = {};
-    saidos.forEach(r => {
-      const k = String(r.transportadora || '').trim() || '(vazio)';
-      tempoMap[k]   = (tempoMap[k] || 0) + r._tempo_min;
-      tempoCount[k] = (tempoCount[k] || 0) + 1;
-    });
-    const tempoTop = Object.entries(tempoMap)
-      .map(([k, v]) => [k, Math.round(v / tempoCount[k])])
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
-    getOrCreate('chart-tempo', 'bar', {
-      labels: tempoTop.map(([k]) => k),
-      datasets: [{ data: tempoTop.map(([,v]) => v), backgroundColor: '#e67e22', borderRadius: 4 }],
-    }, { ...base });
-
-    // 5 — Veículos por Tipo
-    const tipoTop = topN(filteredData, r => r.tipo_veiculo);
-    getOrCreate('chart-tipo', 'bar', {
-      labels: tipoTop.map(([k]) => k),
-      datasets: [{ data: tipoTop.map(([,v]) => v), backgroundColor: CHART_COLORS, borderRadius: 4 }],
-    }, { ...base });
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     TABELA  (usa textContent em todos os campos para evitar XSS)
-  ═══════════════════════════════════════════════════════════ */
-  function updateTable() {
-    const tbody = document.getElementById('table-body');
-    const countEl = document.getElementById('record-count');
-
-    // Ordenação
-    let rows = [...filteredData];
-    if (sortState.col) {
-      rows.sort((a, b) => {
-        const va = String(a[sortState.col] ?? '');
-        const vb = String(b[sortState.col] ?? '');
-        const n = va.localeCompare(vb, 'pt-BR', { numeric: true });
-        return sortState.dir === 'asc' ? n : -n;
-      });
+  const filtered = allData.filter(r => {
+    if (f.tipo   && r.tipo     !== f.tipo)   return false;
+    if (f.op     && r.operacao !== f.op)     return false;
+    if (f.transp && r.transp   !== f.transp) return false;
+    if (f.de || f.ate) {
+      const d = toISODay(r.checkin);
+      if (f.de  && d < f.de)  return false;
+      if (f.ate && d > f.ate) return false;
     }
+    return true;
+  });
 
-    // Limpa tbody de forma segura
-    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
-    countEl.textContent = rows.length + ' registros';
+  // Separa: sem checkout = pátio | com checkout = histórico
+  filteredIn  = filtered.filter(r => !r.checkout || String(r.checkout).trim() === '' || r.checkout === null);
+  filteredOut = filtered.filter(r =>  r.checkout && String(r.checkout).trim() !== '' && r.checkout !== null);
 
-    if (rows.length === 0) {
-      const tr = document.createElement('tr');
+  renderPatio();
+  renderHist();
+  renderKPIs();
+  renderAlertBanner();
+  startTimerLoop();
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER — VEÍCULOS NO PÁTIO
+═══════════════════════════════════════════════════════ */
+function renderPatio() {
+  const tbody = document.getElementById('tb-patio');
+  const cnt   = document.getElementById('cnt-patio');
+
+  // Ordena por minutos (mais urgente primeiro)
+  const rows = [...filteredIn].sort((a, b) => {
+    const ma = getMinutesLive(a.checkin) ?? 0;
+    const mb = getMinutesLive(b.checkin) ?? 0;
+    return mb - ma;
+  });
+
+  cnt.textContent = rows.length;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  if (rows.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 8; td.className = 'no-data';
+    td.textContent = '✅ Nenhum veículo no pátio para os filtros selecionados.';
+    tr.appendChild(td); tbody.appendChild(tr);
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  rows.forEach(r => {
+    const min = getMinutesLive(r.checkin);
+    const st  = getStatus(min);
+    const tr  = document.createElement('tr');
+    tr.className = 'row-' + st;
+    tr.dataset.checkin = r.checkin; // para timer ao vivo
+
+    const addTd = (val, cls) => {
       const td = document.createElement('td');
-      td.colSpan = 9;
-      td.className = 'no-data';
-      td.textContent = 'Nenhum registro encontrado para os filtros selecionados.';
-      tr.appendChild(td);
-      tbody.appendChild(tr);
-      return;
-    }
+      if (cls) td.className = cls;
+      td.textContent = String(val ?? '—'); // textContent — XSS safe
+      return td;
+    };
 
-    const frag = document.createDocumentFragment();
-    rows.forEach(r => {
-      const tr = document.createElement('tr');
+    // Status badge
+    const tdSt = document.createElement('td');
+    const span = document.createElement('span');
+    span.className = 'badge-status badge-' + st;
+    span.textContent = STATUS_LABEL[st];
+    tdSt.appendChild(span);
+    tr.appendChild(tdSt);
 
-      const addCell = (val, cls) => {
-        const td = document.createElement('td');
-        if (cls) {
-          const span = document.createElement('span');
-          span.className = 'tag ' + cls;
-          span.textContent = String(val ?? '—');  // textContent — XSS safe
-          td.appendChild(span);
-        } else {
-          td.textContent = String(val ?? '—');    // textContent — XSS safe
-        }
-        tr.appendChild(td);
-      };
+    // Timer (atualizado pelo loop)
+    const tdMin = addTd(min !== null ? min + ' min' : '—', 'timer-' + st);
+    tdMin.dataset.timerCell = 'true';
+    tr.appendChild(tdMin);
 
-      addCell(r.placa);
-      addCell(r.transportadora);
-      addCell(r.tipo_veiculo);
-      addCell(r._mile, r._mile === 'Last Mile' ? 'tag-lm' : r._mile === 'Middle Mile' ? 'tag-mm' : '');
-      addCell(r._operacao, r._operacao === 'INBOUND' ? 'tag-in' : r._operacao === 'OUTBOUND' ? 'tag-out' : '');
-      addCell(r.checkin);
-      addCell(r.checkout || '(no pátio)');
-      addCell(r._tempo_min !== null ? r._tempo_min : '—');
-      addCell(r.rota_id);
+    tr.appendChild(addTd(r.placa));
+    tr.appendChild(addTd(r.transp));
+    tr.appendChild(addTd(r.modal));
+    tr.appendChild(addTd(r.tipo === 'last_mile' ? 'Last Mile' : r.tipo === 'middle_mile' ? 'Middle Mile' : r.tipo));
+    tr.appendChild(addTd(r.operacao));
+    tr.appendChild(addTd(fmtTime(r.checkin)));
 
-      frag.appendChild(tr);
-    });
-    tbody.appendChild(frag);
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER — HISTÓRICO DE SAÍDAS
+═══════════════════════════════════════════════════════ */
+function renderHist() {
+  const tbody = document.getElementById('tb-hist');
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  const btn = document.getElementById('hist-btn');
+  btn.querySelector('span').textContent =
+    `📋 Histórico de Saídas — ${filteredOut.length} veículos que já saíram no período`;
+
+  if (filteredOut.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 9; td.className = 'no-data';
+    td.textContent = 'Nenhum registro de saída no período.';
+    tr.appendChild(td); tbody.appendChild(tr);
+    return;
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     SORT NA TABELA
-  ═══════════════════════════════════════════════════════════ */
-  document.getElementById('table-header').addEventListener('click', e => {
-    const th = e.target.closest('th[data-col]');
-    if (!th) return;
-    const col = th.dataset.col;
-    sortState.dir = (sortState.col === col && sortState.dir === 'asc') ? 'desc' : 'asc';
-    sortState.col = col;
-    document.querySelectorAll('thead th').forEach(t => {
-      t.classList.remove('sorted-asc', 'sorted-desc');
-    });
-    th.classList.add('sorted-' + sortState.dir);
-    updateTable();
+  // Ordena por saída (mais recente primeiro)
+  const rows = [...filteredOut].sort((a, b) => {
+    const da = parseDate(a.checkout);
+    const db = parseDate(b.checkout);
+    return (db?.getTime() ?? 0) - (da?.getTime() ?? 0);
   });
 
-  /* ═══════════════════════════════════════════════════════════
-     AUTO-REFRESH
-  ═══════════════════════════════════════════════════════════ */
-  document.getElementById('refresh-select').addEventListener('change', function () {
-    clearInterval(refreshTimer);
-    const secs = parseInt(this.value, 10);
-    if (secs > 0) refreshTimer = setInterval(fetchData, secs * 1000);
+  const frag = document.createDocumentFragment();
+  rows.forEach(r => {
+    const min = Number(r.tempMin) || 0;
+    const st  = getStatus(min);
+    const tr  = document.createElement('tr');
+    tr.className = 'row-' + st;
+
+    const addTd = val => {
+      const td = document.createElement('td');
+      td.textContent = String(val ?? '—'); // textContent — XSS safe
+      return td;
+    };
+
+    tr.appendChild(addTd(r.placa));
+    tr.appendChild(addTd(r.transp));
+    tr.appendChild(addTd(r.modal));
+    tr.appendChild(addTd(r.tipo === 'last_mile' ? 'Last Mile' : r.tipo === 'middle_mile' ? 'Middle Mile' : r.tipo));
+    tr.appendChild(addTd(r.operacao));
+    tr.appendChild(addTd(fmtTime(r.checkin)));
+    tr.appendChild(addTd(fmtTime(r.checkout)));
+    tr.appendChild(addTd(min));
+
+    const tdSt = document.createElement('td');
+    const span = document.createElement('span');
+    span.className = 'badge-status badge-' + st;
+    span.textContent = STATUS_LABEL[st];
+    tdSt.appendChild(span);
+    tr.appendChild(tdSt);
+
+    frag.appendChild(tr);
   });
+  tbody.appendChild(frag);
+}
 
-  /* ═══════════════════════════════════════════════════════════
-     UTILITÁRIOS
-  ═══════════════════════════════════════════════════════════ */
-  function setText(id, val) {
-    // textContent — seguro contra XSS
-    document.getElementById(id).textContent = String(val);
-  }
-  function showSpinner(on) {
-    const btn = document.getElementById('btn-refresh');
-    btn.textContent = on ? '⏳' : '↻ Atualizar';
-    btn.disabled = on;
-  }
-  function showStatus(type, msg) {
-    const el = document.getElementById('status-banner');
-    el.className = type;
-    el.textContent = msg;   // textContent — sem injeção de HTML
-  }
-  function hideStatus() {
-    const el = document.getElementById('status-banner');
-    el.className = '';
-    el.style.display = 'none';
-  }
-  function setLastUpdated() {
-    const now = new Date();
-    document.getElementById('last-updated').textContent =
-      'Atualizado: ' + now.toLocaleTimeString('pt-BR');
-  }
+/* ═══════════════════════════════════════════════════════
+   KPIs
+═══════════════════════════════════════════════════════ */
+function renderKPIs() {
+  const mins = filteredIn.map(r => getMinutesLive(r.checkin));
 
-  /* ═══════════════════════════════════════════════════════════
-     INIT — define datas padrão (últimos 7 dias) e carrega
-  ═══════════════════════════════════════════════════════════ */
-  (function init() {
-    const today = new Date();
-    const past  = new Date(today);
-    past.setDate(today.getDate() - 7);
-    const fmt = d => d.toISOString().split('T')[0];
-    document.getElementById('filter-date-start').value = fmt(past);
-    document.getElementById('filter-date-end').value   = fmt(today);
-    fetchData();
-  })();
+  const ok      = mins.filter(m => m !== null && m < LIMIT_ALERT).length;
+  const alert   = mins.filter(m => m !== null && m >= LIMIT_ALERT && m < LIMIT_CRIT).length;
+  const crit    = mins.filter(m => m !== null && m >= LIMIT_CRIT  && m < LIMIT_OFFEND).length;
+  const offend  = mins.filter(m => m !== null && m >= LIMIT_OFFEND).length;
+  const saidos  = filteredOut.length;
+  const tempos  = filteredOut.map(r => Number(r.tempMin)).filter(v => !isNaN(v) && v > 0);
+  const media   = tempos.length ? Math.round(tempos.reduce((a,b) => a+b,0)/tempos.length) : null;
+
+  setText('k-patio',  filteredIn.length);
+  setText('k-ok',     ok);
+  setText('k-alert',  alert);
+  setText('k-crit',   crit);
+  setText('k-offend', offend);
+  setText('k-saidos', saidos);
+  setText('k-media',  media !== null ? media : '—');
+}
+
+/* ═══════════════════════════════════════════════════════
+   BANNER DE ALERTA
+═══════════════════════════════════════════════════════ */
+function renderAlertBanner() {
+  const banner  = document.getElementById('alert-banner');
+  const offend  = filteredIn.filter(r => { const m = getMinutesLive(r.checkin); return m !== null && m >= LIMIT_OFFEND; }).length;
+  const crit    = filteredIn.filter(r => { const m = getMinutesLive(r.checkin); return m !== null && m >= LIMIT_CRIT && m < LIMIT_OFFEND; }).length;
+
+  if (offend > 0 || crit > 0) {
+    banner.style.display = 'block';
+    const parts = [];
+    if (offend > 0) parts.push(`❌ ${offend} veículo(s) OFENSOR(ES) — mais de ${LIMIT_OFFEND} minutos no pátio!`);
+    if (crit   > 0) parts.push(`🔴 ${crit} veículo(s) CRÍTICO(S) — entre ${LIMIT_CRIT} e ${LIMIT_OFFEND-1} minutos`);
+    banner.textContent = parts.join('   •   '); // textContent — XSS safe
+  } else {
+    banner.style.display = 'none';
+    banner.textContent = '';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   LOOP DE TIMER AO VIVO (sem refetch — só recalcula)
+═══════════════════════════════════════════════════════ */
+function startTimerLoop() {
+  if (timerUI) clearInterval(timerUI);
+  timerUI = setInterval(() => {
+    const rows = document.querySelectorAll('#tb-patio tr[data-checkin]');
+    rows.forEach(tr => {
+      const checkin = tr.dataset.checkin;
+      const min = getMinutesLive(checkin);
+      const st  = getStatus(min);
+
+      // Atualiza classe da linha
+      tr.className = 'row-' + st;
+
+      // Atualiza badge de status
+      const badge = tr.querySelector('.badge-status');
+      if (badge) {
+        badge.className = 'badge-status badge-' + st;
+        badge.textContent = STATUS_LABEL[st];
+      }
+
+      // Atualiza célula do timer
+      const timerTd = tr.querySelector('[data-timer-cell]');
+      if (timerTd) {
+        timerTd.className = 'timer-' + st;
+        timerTd.textContent = min !== null ? min + ' min' : '—';
+      }
+    });
+
+    // Reatualiza KPIs e banner sem re-render completo
+    renderKPIs();
+    renderAlertBanner();
+  }, 15000); // recomputa a cada 15 segundos
+}
+
+/* ═══════════════════════════════════════════════════════
+   AUTO-REFRESH DE DADOS
+═══════════════════════════════════════════════════════ */
+document.getElementById('refresh-sel').addEventListener('change', function() {
+  clearInterval(refreshData);
+  const secs = parseInt(this.value, 10);
+  if (secs > 0) refreshData = setInterval(fetchData, secs * 1000);
+});
+
+document.getElementById('btn-refresh').addEventListener('click', fetchData);
+
+/* ═══════════════════════════════════════════════════════
+   EVENTOS DE FILTRO
+═══════════════════════════════════════════════════════ */
+['f-tipo','f-de','f-ate','f-op','f-transp'].forEach(id =>
+  document.getElementById(id).addEventListener('change', applyFilters)
+);
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  document.getElementById('f-tipo').value  = 'last_mile';
+  document.getElementById('f-de').value    = '';
+  document.getElementById('f-ate').value   = '';
+  document.getElementById('f-op').value    = '';
+  document.getElementById('f-transp').value= '';
+  applyFilters();
+});
+
+/* ═══════════════════════════════════════════════════════
+   TOGGLE HISTÓRICO
+═══════════════════════════════════════════════════════ */
+function toggleHist() {
+  const btn = document.getElementById('hist-btn');
+  const sec = document.getElementById('hist-section');
+  const isOpen = sec.style.display === 'block';
+  sec.style.display = isOpen ? 'none' : 'block';
+  btn.classList.toggle('open', !isOpen);
+}
+
+/* ═══════════════════════════════════════════════════════
+   UTILITÁRIOS
+═══════════════════════════════════════════════════════ */
+function setText(id, v) { document.getElementById(id).textContent = String(v); }
+function showStatus(cls, msg) {
+  const el = document.getElementById('status-msg');
+  el.className = cls; el.textContent = msg; el.style.display = 'block';
+}
+function hideStatus() {
+  const el = document.getElementById('status-msg');
+  el.style.display = 'none'; el.className = ''; el.textContent = '';
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+(function init() {
+  // Inicia auto-refresh com valor padrão (10 seg)
+  refreshData = setInterval(fetchData, 10000);
+  fetchData();
+})();
 </script>
 </body>
 </html>
