@@ -64,6 +64,31 @@
     }
     #refresh-sel option { background: var(--surface2); }
 
+    /* ── DAY BUTTONS ── */
+    .day-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text2); border-radius: 6px; padding: 5px 13px;
+      font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;
+    }
+    .day-btn:hover { border-color: var(--blue); color: var(--text); }
+    .day-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    /* ── MILE KPI SECTION ── */
+    .mile-section { display: flex; flex-direction: column; gap: 8px; }
+    .mile-header {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--text2);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .mile-header .pill {
+      padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    }
+    .pill-lm { background: rgba(0,177,234,.18); color: var(--blue); }
+    .pill-mm { background: rgba(255,230,0,.14); color: var(--accent); }
+    .mile-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; }
+    .kpi-pct { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .kpi-pct strong { color: inherit; }
+
     /* ── FILTER BAR ── */
     .filter-bar {
       background: var(--surface);
@@ -224,7 +249,6 @@
         <option value="300">5 min</option>
       </select>
     </div>
-    <button class="btn btn-yellow" id="btn-refresh">↻ Atualizar</button>
   </div>
 </header>
 
@@ -238,13 +262,10 @@
       <option value="middle_mile">Middle Mile</option>
     </select>
   </div>
-  <div class="fg">
-    <label>📅 De:</label>
-    <input type="date" id="f-de">
-  </div>
-  <div class="fg">
-    <label>Até:</label>
-    <input type="date" id="f-ate">
+  <div class="fg" style="gap:4px">
+    <label>📅</label>
+    <button class="day-btn active" data-day="0" onclick="selectDay(0)">D-0 Hoje</button>
+    <button class="day-btn"        data-day="1" onclick="selectDay(1)">D-1 Ontem</button>
   </div>
   <div class="fg">
     <label>Operação:</label>
@@ -269,7 +290,7 @@
   <!-- Banner de alerta -->
   <div id="alert-banner"></div>
 
-  <!-- KPIs -->
+  <!-- KPIs GLOBAIS -->
   <div class="kpi-row">
     <div class="kpi c-blue">
       <div class="kpi-label">No Pátio Agora</div>
@@ -277,7 +298,7 @@
       <div class="kpi-sub">veículos presentes</div>
     </div>
     <div class="kpi c-ok">
-      <div class="kpi-label">🟢 Em dia</div>
+      <div class="kpi-label">🟢 No Tempo Certo</div>
       <div class="kpi-val" id="k-ok">—</div>
       <div class="kpi-sub">&lt; 20 min</div>
     </div>
@@ -297,15 +318,59 @@
       <div class="kpi-sub">≥ 30 min</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Saídos hoje</div>
+      <div class="kpi-label">Saídos</div>
       <div class="kpi-val" id="k-saidos" style="color:var(--text2)">—</div>
       <div class="kpi-sub">com checkout</div>
     </div>
-    <div class="kpi">
-      <div class="kpi-label">Média permanência</div>
-      <div class="kpi-val" id="k-media" style="color:var(--text2)">—</div>
-      <div class="kpi-sub">min (saídos)</div>
+  </div>
+
+  <!-- KPIs POR MILE -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+    <!-- LAST MILE -->
+    <div class="mile-section">
+      <div class="mile-header"><span class="pill pill-lm">LAST MILE</span> Indicadores do período</div>
+      <div class="mile-kpi-row">
+        <div class="kpi">
+          <div class="kpi-label">Total Registros</div>
+          <div class="kpi-val" id="lm-total" style="color:var(--text2)">—</div>
+          <div class="kpi-sub">rotas registradas</div>
+        </div>
+        <div class="kpi c-ok">
+          <div class="kpi-label">🟢 No Tempo Certo</div>
+          <div class="kpi-val" id="lm-ok">—</div>
+          <div class="kpi-pct" id="lm-ok-pct">— % do total</div>
+        </div>
+        <div class="kpi c-offend">
+          <div class="kpi-label">❌ Ofensores</div>
+          <div class="kpi-val" id="lm-off">—</div>
+          <div class="kpi-pct" id="lm-off-pct">— % do total</div>
+        </div>
+      </div>
     </div>
+
+    <!-- MIDDLE MILE -->
+    <div class="mile-section">
+      <div class="mile-header"><span class="pill pill-mm">MIDDLE MILE</span> Indicadores do período</div>
+      <div class="mile-kpi-row">
+        <div class="kpi">
+          <div class="kpi-label">Total Registros</div>
+          <div class="kpi-val" id="mm-total" style="color:var(--text2)">—</div>
+          <div class="kpi-sub">rotas registradas</div>
+        </div>
+        <div class="kpi c-ok">
+          <div class="kpi-label">🟢 No Tempo Certo</div>
+          <div class="kpi-val" id="mm-ok">—</div>
+          <div class="kpi-pct" id="mm-ok-pct">— % do total</div>
+        </div>
+        <div class="kpi c-offend">
+          <div class="kpi-label">❌ Ofensores</div>
+          <div class="kpi-val" id="mm-off">—</div>
+          <div class="kpi-pct" id="mm-off-pct">— % do total</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Veículos NO PÁTIO -->
@@ -389,6 +454,7 @@ let filteredIn  = [];   // no pátio (sem checkout)
 let filteredOut = [];   // já saíram (com checkout)
 let timerUI     = null; // setInterval para atualizar timers na tela
 let refreshData = null; // setInterval para refetch de dados
+let selectedDay = 0;    // 0 = hoje, 1 = ontem
 
 /* ═══════════════════════════════════════════════════════
    RELÓGIO EM TEMPO REAL
@@ -589,11 +655,24 @@ function populateTranspFilter() {
   if ([...set].includes(cur)) sel.value = cur;
 }
 
+function getDayISO(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() - offset);
+  return d.toISOString().slice(0, 10);
+}
+
+function selectDay(day) {
+  selectedDay = day;
+  document.querySelectorAll('.day-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.day) === day)
+  );
+  applyFilters();
+}
+
 function getFilters() {
   return {
     tipo:   document.getElementById('f-tipo').value,
-    de:     document.getElementById('f-de').value,
-    ate:    document.getElementById('f-ate').value,
+    date:   getDayISO(selectedDay),
     op:     document.getElementById('f-op').value,
     transp: document.getElementById('f-transp').value,
   };
@@ -606,10 +685,9 @@ function applyFilters() {
     if (f.tipo   && r.tipo     !== f.tipo)   return false;
     if (f.op     && r.operacao !== f.op)     return false;
     if (f.transp && r.transp   !== f.transp) return false;
-    if (f.de || f.ate) {
+    if (f.date) {
       const d = toISODay(r.checkin);
-      if (f.de  && d < f.de)  return false;
-      if (f.ate && d > f.ate) return false;
+      if (d !== f.date) return false;
     }
     return true;
   });
@@ -753,26 +831,61 @@ function renderHist() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   TEMPO EFETIVO — in yard = live timer; saído = tempo_min
+═══════════════════════════════════════════════════════ */
+function effectiveMin(r) {
+  if (r.checkout && String(r.checkout).trim()) {
+    const t = Number(r.tempMin);
+    return isNaN(t) ? null : t;
+  }
+  return getMinutesLive(r.checkin);
+}
+
+/* ═══════════════════════════════════════════════════════
    KPIs
 ═══════════════════════════════════════════════════════ */
 function renderKPIs() {
-  const mins = filteredIn.map(r => getMinutesLive(r.checkin));
-
-  const ok      = mins.filter(m => m !== null && m < LIMIT_ALERT).length;
-  const alert   = mins.filter(m => m !== null && m >= LIMIT_ALERT && m < LIMIT_CRIT).length;
-  const crit    = mins.filter(m => m !== null && m >= LIMIT_CRIT  && m < LIMIT_OFFEND).length;
-  const offend  = mins.filter(m => m !== null && m >= LIMIT_OFFEND).length;
-  const saidos  = filteredOut.length;
-  const tempos  = filteredOut.map(r => Number(r.tempMin)).filter(v => !isNaN(v) && v > 0);
-  const media   = tempos.length ? Math.round(tempos.reduce((a,b) => a+b,0)/tempos.length) : null;
+  // ── Globais (veículos no pátio agora) ──
+  const mins   = filteredIn.map(r => getMinutesLive(r.checkin));
+  const ok     = mins.filter(m => m !== null && m < LIMIT_ALERT).length;
+  const alert  = mins.filter(m => m !== null && m >= LIMIT_ALERT && m < LIMIT_CRIT).length;
+  const crit   = mins.filter(m => m !== null && m >= LIMIT_CRIT  && m < LIMIT_OFFEND).length;
+  const offend = mins.filter(m => m !== null && m >= LIMIT_OFFEND).length;
 
   setText('k-patio',  filteredIn.length);
   setText('k-ok',     ok);
   setText('k-alert',  alert);
   setText('k-crit',   crit);
   setText('k-offend', offend);
-  setText('k-saidos', saidos);
-  setText('k-media',  media !== null ? media : '—');
+  setText('k-saidos', filteredOut.length);
+
+  // ── Por mile: usa TODOS os registros filtrados (in + out) ──
+  const allFiltered = [...filteredIn, ...filteredOut];
+
+  function mileStats(mileKey) {
+    const rows  = allFiltered.filter(r => r.tipo === mileKey);
+    const total = rows.length;
+    const pct   = (n) => total > 0 ? (n / total * 100).toFixed(1) + '%' : '—%';
+    const tempos = rows.map(r => effectiveMin(r)).filter(m => m !== null);
+    const okCnt  = tempos.filter(m => m < LIMIT_ALERT).length;
+    const offCnt = tempos.filter(m => m >= LIMIT_OFFEND).length;
+    return { total, okCnt, offCnt, pct };
+  }
+
+  const lm = mileStats('last_mile');
+  setText('lm-total',   lm.total);
+  setText('lm-ok',      lm.okCnt);
+  setText('lm-off',     lm.offCnt);
+  // textContent seguro — valores numéricos apenas
+  document.getElementById('lm-ok-pct').textContent  = lm.pct(lm.okCnt)  + ' do total';
+  document.getElementById('lm-off-pct').textContent = lm.pct(lm.offCnt) + ' do total';
+
+  const mm = mileStats('middle_mile');
+  setText('mm-total',   mm.total);
+  setText('mm-ok',      mm.okCnt);
+  setText('mm-off',     mm.offCnt);
+  document.getElementById('mm-ok-pct').textContent  = mm.pct(mm.okCnt)  + ' do total';
+  document.getElementById('mm-off-pct').textContent = mm.pct(mm.offCnt) + ' do total';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -840,22 +953,20 @@ document.getElementById('refresh-sel').addEventListener('change', function() {
   if (secs > 0) refreshData = setInterval(fetchData, secs * 1000);
 });
 
-document.getElementById('btn-refresh').addEventListener('click', fetchData);
+// Refresh manual via seletor (setar para 0 e de volta não aciona fetch — botão removido intencionalmente)
 
 /* ═══════════════════════════════════════════════════════
    EVENTOS DE FILTRO
 ═══════════════════════════════════════════════════════ */
-['f-tipo','f-de','f-ate','f-op','f-transp'].forEach(id =>
+['f-tipo','f-op','f-transp'].forEach(id =>
   document.getElementById(id).addEventListener('change', applyFilters)
 );
 
 document.getElementById('btn-clear').addEventListener('click', () => {
-  document.getElementById('f-tipo').value  = 'last_mile';
-  document.getElementById('f-de').value    = '';
-  document.getElementById('f-ate').value   = '';
-  document.getElementById('f-op').value    = '';
-  document.getElementById('f-transp').value= '';
-  applyFilters();
+  document.getElementById('f-tipo').value   = 'last_mile';
+  document.getElementById('f-op').value     = '';
+  document.getElementById('f-transp').value = '';
+  selectDay(0);   // volta para D-0
 });
 
 /* ═══════════════════════════════════════════════════════
