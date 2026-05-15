@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YMS Dashboard — SPR4</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #333; }
+
+    .header {
+      background: #1565C0; color: #fff;
+      padding: 13px 24px; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .header-title { font-size: 17px; font-weight: 700; }
+    .header-right { font-size: 12px; opacity: .8; }
+
+    .toolbar {
+      background: #fff; padding: 9px 24px;
+      display: flex; gap: 10px; align-items: center;
+      border-bottom: 1px solid #e0e6ed; flex-wrap: wrap;
+    }
+    .toolbar label { font-size: 11px; color: #666; font-weight: 600; }
+    .toolbar select, .toolbar input[type=date] {
+      border: 1px solid #d0d7de; border-radius: 6px;
+      padding: 4px 8px; font-size: 12px; height: 30px; background: #fff;
+    }
+    .toolbar button {
+      border-radius: 6px; padding: 4px 14px;
+      font-size: 12px; cursor: pointer; height: 30px; border: none;
+    }
+    .btn-primary   { background: #1565C0; color: #fff; }
+    .btn-secondary { background: #f0f4f8; color: #555; border: 1px solid #d0d7de !important; }
+    #upd-time { font-size: 11px; color: #aaa; margin-left: auto; white-space: nowrap; }
+
+    .content { padding: 20px 24px; }
+
+    /* KPI */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px; margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: #fff; border-radius: 12px;
+      padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .kpi-label { font-size: 10px; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }
+    .kpi-value { font-size: 34px; font-weight: 800; margin: 4px 0 2px; }
+    .kpi-sub   { font-size: 11px; color: #bbb; }
+
+    /* Charts */
+    .charts-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px; margin-bottom: 20px;
+    }
+    .chart-card {
+      background: #fff; border-radius: 12px;
+      padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .chart-title { font-size: 12px; font-weight: 700; color: #444; margin-bottom: 14px; }
+    .chart-wrap  { position: relative; height: 200px; }
+
+    /* Table */
+    .table-card {
+      background: #fff; border-radius: 12px;
+      padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      overflow-x: auto; margin-bottom: 24px;
+    }
+    .table-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+    }
+    .table-title  { font-size: 13px; font-weight: 700; color: #444; }
+    .table-search {
+      border: 1px solid #d0d7de; border-radius: 6px;
+      padding: 5px 10px; font-size: 12px; height: 30px; width: 220px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th {
+      background: #f0f4f8; padding: 8px 10px; text-align: left;
+      font-weight: 700; color: #555; cursor: pointer;
+      white-space: nowrap; border-bottom: 1px solid #e0e6ed; user-select: none;
+    }
+    th:hover { background: #dde8f5; }
+    td { padding: 7px 10px; border-bottom: 1px solid #f0f4f8; white-space: nowrap; }
+    tr:hover td { background: #f7faff; }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 12px; font-size: 10px; font-weight: 700;
+    }
+    .b-lm  { background: #E3F2FD; color: #1565C0; }
+    .b-mm  { background: #F3E5F5; color: #6A1B9A; }
+    .b-in  { background: #E8F5E9; color: #2E7D32; }
+    .b-out { background: #FFF3E0; color: #E65100; }
+    #table-count { font-size: 11px; color: #bbb; margin-top: 10px; text-align: right; }
+
+    .spinner { text-align: center; padding: 60px; color: #888; font-size: 15px; }
+    .err-box { text-align: center; padding: 40px; color: #e53935; font-size: 14px; }
+
+    @media (max-width: 600px) {
+      .content { padding: 12px; }
+      .kpi-value { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">🚛 YMS Dashboard — SPR4</div>
+  <div class="header-right" id="header-count"></div>
+</div>
+
+<div class="toolbar">
+  <label>📅 Data:</label>
+  <input type="date" id="f-date" onchange="applyFilters()">
+  <label>Mile:</label>
+  <select id="f-mile" onchange="applyFilters()">
+    <option value="">Todos</option>
+    <option value="last_mile">Last Mile</option>
+    <option value="middle_mile">Middle Mile</option>
+  </select>
+  <label>Operação:</label>
+  <select id="f-op" onchange="applyFilters()">
+    <option value="">Todos</option>
+    <option value="OUTBOUND">OUTBOUND</option>
+    <option value="INBOUND">INBOUND</option>
+  </select>
+  <label>Transportadora:</label>
+  <select id="f-carrier" onchange="applyFilters()"><option value="">Todas</option></select>
+  <button class="btn-secondary" onclick="clearFilters()">✕ Limpar</button>
+  <button class="btn-primary"   onclick="manualRefresh()">↻ Atualizar</button>
+  <label>🔄</label>
+  <select id="auto-interval" onchange="setAutoRefresh()" style="border:1px solid #d0d7de;border-radius:6px;padding:4px 8px;font-size:12px;height:30px">
+    <option value="0">Manual</option>
+    <option value="10" selected>10 seg</option>
+    <option value="30">30 seg</option>
+    <option value="60">1 min</option>
+    <option value="300">5 min</option>
+  </select>
+  <span id="upd-time"></span>
+</div>
+
+<div class="content">
+  <div id="loading" class="spinner">⏳ Carregando dados...</div>
+  <div id="err-box" class="err-box" style="display:none"></div>
+  <div id="main" style="display:none">
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Total de Registros</div>
+        <div class="kpi-value" style="color:#1565C0" id="k-total">—</div>
+        <div class="kpi-sub">veículos no período</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">No Pátio Agora</div>
+        <div class="kpi-value" style="color:#F57C00" id="k-patio">—</div>
+        <div class="kpi-sub">checkin sem checkout</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Saídos</div>
+        <div class="kpi-value" style="color:#2E7D32" id="k-saidos">—</div>
+        <div class="kpi-sub">checkout registrado</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Tempo Médio no Pátio</div>
+        <div class="kpi-value" style="color:#6A1B9A" id="k-tmedio">—</div>
+        <div class="kpi-sub">minutos (veíc. saídos)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Transportadoras</div>
+        <div class="kpi-value" style="color:#00838F" id="k-carriers">—</div>
+        <div class="kpi-sub">distintas no período</div>
+      </div>
+    </div>
+
+    <!-- Gráficos linha 1 -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">🏢 Veículos por Transportadora (Top 8)</div>
+        <div class="chart-wrap"><canvas id="chart-carrier"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📦 Last Mile vs Middle Mile</div>
+        <div class="chart-wrap"><canvas id="chart-mile"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🔄 INBOUND vs OUTBOUND</div>
+        <div class="chart-wrap"><canvas id="chart-op"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Gráficos linha 2 -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">⏱️ Tempo Médio no Pátio por Transportadora — min (Top 8)</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chart-tempo"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🚗 Veículos por Tipo</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chart-vtype"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-title">📋 Registros de Acesso</div>
+        <input type="text" class="table-search" placeholder="🔍 Placa, transportadora, rota..." oninput="filterTable(this.value)">
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Placa ↕</th>
+            <th onclick="sortTable(1)">Transportadora ↕</th>
+            <th onclick="sortTable(2)">Tipo Veículo ↕</th>
+            <th onclick="sortTable(3)">Mile ↕</th>
+            <th onclick="sortTable(4)">Operação ↕</th>
+            <th onclick="sortTable(5)">Checkin ↕</th>
+            <th onclick="sortTable(6)">Checkout ↕</th>
+            <th onclick="sortTable(7)">Tempo (min) ↕</th>
+            <th onclick="sortTable(8)">Rota ID ↕</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+      <div id="table-count"></div>
+    </div>
+
+  </div><!-- /main -->
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ════════════════════════════════════════════════
+//  URL do Apps Script — não precisa alterar
+// ════════════════════════════════════════════════
+const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/mercadolivre.com/s/AKfycbwakXIZ46LfCSzuLOD7uHik4-pdb02-BC_QYrOx1FvymtO668xK1ihZ8XUPx42H53mt5w/exec';
+// ════════════════════════════════════════════════
+
+let allRows = [], filteredRows = [], tableRows = [];
+let col = {}, charts = {}, sortDir = {};
+let autoTimer = null, countdown = 0, lastUpdTime = '';
+
+// ── Data ─────────────────────────────────────────
+async function loadData() {
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const values = await resp.json();
+    if (!values || values.length < 2) throw new Error('Sem dados');
+
+    detectCols(values[0]);
+    allRows = values.slice(1).filter(r => r && r.length > 1);
+
+    populateCarrierFilter();
+    lastUpdTime = new Date().toLocaleTimeString('pt-BR');
+
+    applyFilters();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('err-box').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+
+    if (!autoTimer) setAutoRefresh();
+
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    const eb = document.getElementById('err-box');
+    eb.textContent = '⚠️ Erro ao carregar dados: ' + e.message;
+    eb.style.display = 'block';
+  }
+}
+
+function manualRefresh() {
+  clearInterval(autoTimer);
+  autoTimer = null;
+  countdown = 0;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('main').style.display = 'none';
+  loadData();
+}
+
+function detectCols(h) {
+  const idx = {};
+  h.forEach((n, i) => idx[String(n).trim().toUpperCase()] = i);
+  const g = (k, fb) => idx[k] !== undefined ? idx[k] : fb;
+  col = {
+    PLATE:    g('REQUEST.VEHICLE.LICENSE_PLATE', 17),
+    CARRIER:  g('REQUEST.CARRIER.NAME',          12),
+    VEHICLE:  g('REQUEST.VEHICLE.DESCRIPTION',   18),
+    MILE:     g('PURPOSE.MILE',                  22),
+    OPERATION:g('PURPOSE.OPERATION',             23),
+    ROUTE:    g('PURPOSE.ROUTE_ID',              27),
+    CHECKIN:  g('GATE_CHECKIN_DATE',             34),
+    CHECKOUT: g('GATE.CHECKOUT.DATE',            38),
+    STAY:     g('GATE.FACILITY_STAY_TIME_MINUTES',46),
+  };
+}
+
+function populateCarrierFilter() {
+  const sel = document.getElementById('f-carrier');
+  const cur = sel.value;
+  const names = [...new Set(allRows.map(r => String(r[col.CARRIER]||'').trim()))].sort();
+  sel.innerHTML = '<option value="">Todas</option>' +
+    names.filter(Boolean).map(n => `<option value="${n}">${n}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+// ── Auto-refresh ─────────────────────────────────
+function setAutoRefresh() {
+  clearInterval(autoTimer); autoTimer = null;
+  const sec = parseInt(document.getElementById('auto-interval').value) || 0;
+  if (sec <= 0) { updateUpd(); return; }
+  countdown = sec; updateUpd();
+  autoTimer = setInterval(() => {
+    countdown--;
+    if (countdown <= 0) { countdown = sec; silentLoad(); }
+    else updateUpd();
+  }, 1000);
+}
+
+async function silentLoad() {
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL);
+    if (!resp.ok) return;
+    const values = await resp.json();
+    if (!values || values.length < 2) return;
+    detectCols(values[0]);
+    allRows = values.slice(1).filter(r => r && r.length > 1);
+    populateCarrierFilter();
+    lastUpdTime = new Date().toLocaleTimeString('pt-BR');
+    applyFilters();
+  } catch(e) {}
+}
+
+function updateUpd() {
+  const el  = document.getElementById('upd-time');
+  const sec = parseInt(document.getElementById('auto-interval').value) || 0;
+  if (sec > 0 && countdown > 0)
+    el.textContent = (lastUpdTime ? 'Atualizado ' + lastUpdTime + ' · ' : '') + '↻ em ' + countdown + 's';
+  else
+    el.textContent = lastUpdTime ? 'Atualizado ' + lastUpdTime : '';
+}
+
+// ── Filters ──────────────────────────────────────
+function applyFilters() {
+  const date    = document.getElementById('f-date').value;
+  const mile    = document.getElementById('f-mile').value;
+  const op      = document.getElementById('f-op').value;
+  const carrier = document.getElementById('f-carrier').value;
+
+  filteredRows = allRows.filter(r => {
+    if (date) {
+      const [y,m,d] = date.split('-');
+      if (!String(r[col.CHECKIN]||'').startsWith(d+'/'+m+'/'+y)) return false;
+    }
+    if (mile    && String(r[col.MILE]    ||'').toLowerCase()  !== mile.toLowerCase()) return false;
+    if (op      && String(r[col.OPERATION]||'').toUpperCase() !== op.toUpperCase())   return false;
+    if (carrier && String(r[col.CARRIER] ||'').trim()         !== carrier)            return false;
+    return true;
+  });
+
+  renderKPIs();
+  renderCharts();
+  renderTable(filteredRows);
+  updateUpd();
+
+  const hc = document.getElementById('header-count');
+  if (hc) hc.textContent = filteredRows.length.toLocaleString('pt-BR') + ' registros';
+}
+
+function clearFilters() {
+  ['f-date','f-mile','f-op','f-carrier'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  applyFilters();
+}
+
+// ── KPIs ─────────────────────────────────────────
+function renderKPIs() {
+  const total   = filteredRows.length;
+  const saidos  = filteredRows.filter(r => String(r[col.CHECKOUT]||'').trim()).length;
+  const stays   = filteredRows.map(r => parseFloat(r[col.STAY])).filter(v => !isNaN(v) && v > 0);
+  const avg     = stays.length ? Math.round(stays.reduce((a,b)=>a+b,0)/stays.length) : 0;
+  const carriers= new Set(filteredRows.map(r => String(r[col.CARRIER]||'').trim())).size;
+
+  document.getElementById('k-total').textContent    = total.toLocaleString('pt-BR');
+  document.getElementById('k-patio').textContent    = (total - saidos).toLocaleString('pt-BR');
+  document.getElementById('k-saidos').textContent   = saidos.toLocaleString('pt-BR');
+  document.getElementById('k-tmedio').textContent   = avg + ' min';
+  document.getElementById('k-carriers').textContent = carriers;
+}
+
+// ── Charts ───────────────────────────────────────
+const PALETTE = [
+  '#1565C0','#E65100','#2E7D32','#6A1B9A','#00838F',
+  '#AD1457','#F57F17','#37474F','#558B2F','#4527A0'
+];
+
+function countBy(rows, c) {
+  const m = {};
+  rows.forEach(r => { const k = String(r[c]||'—').trim(); m[k]=(m[k]||0)+1; });
+  return Object.entries(m).sort((a,b) => b[1]-a[1]);
+}
+function avgBy(rows, gCol, vCol) {
+  const m = {};
+  rows.forEach(r => {
+    const k = String(r[gCol]||'—').trim();
+    const v = parseFloat(r[vCol]);
+    if (!isNaN(v) && v > 0) {
+      if (!m[k]) m[k] = {s:0,n:0};
+      m[k].s += v; m[k].n++;
+    }
+  });
+  return Object.entries(m).map(([k,g])=>[k, Math.round(g.s/g.n)]).sort((a,b)=>b[1]-a[1]);
+}
+function shorten(s, max) { return String(s||'').length > max ? String(s).substring(0,max)+'…' : String(s||''); }
+
+function mkChart(id, type, labels, data) {
+  if (charts[id]) charts[id].destroy();
+  const isDoughnut = type === 'doughnut';
+  charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: PALETTE.slice(0, data.length),
+        borderWidth: 0,
+        borderRadius: type === 'bar' ? 4 : 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: isDoughnut, position: 'bottom', labels: { font:{size:11}, boxWidth:12 } },
+      },
+      scales: !isDoughnut ? {
+        y: { grid:{color:'#f0f0f0'}, ticks:{font:{size:11}} },
+        x: { grid:{display:false},  ticks:{font:{size:10}, maxRotation:35} }
+      } : undefined,
+    }
+  });
+}
+
+function renderCharts() {
+  const carriers = countBy(filteredRows, col.CARRIER).slice(0,8);
+  mkChart('chart-carrier','bar', carriers.map(e=>shorten(e[0],18)), carriers.map(e=>e[1]));
+
+  const miles = countBy(filteredRows, col.MILE);
+  mkChart('chart-mile','doughnut',
+    miles.map(e=>e[0]==='last_mile'?'Last Mile':e[0]==='middle_mile'?'Middle Mile':e[0]),
+    miles.map(e=>e[1]));
+
+  const ops = countBy(filteredRows, col.OPERATION);
+  mkChart('chart-op','doughnut', ops.map(e=>e[0]), ops.map(e=>e[1]));
+
+  const tempos = avgBy(filteredRows, col.CARRIER, col.STAY).slice(0,8);
+  mkChart('chart-tempo','bar', tempos.map(e=>shorten(e[0],18)), tempos.map(e=>e[1]));
+
+  const vtypes = countBy(filteredRows, col.VEHICLE).slice(0,8);
+  mkChart('chart-vtype','bar', vtypes.map(e=>shorten(e[0],20)), vtypes.map(e=>e[1]));
+}
+
+// ── Table ─────────────────────────────────────────
+function renderTable(rows) { tableRows = [...rows]; renderTableBody(tableRows); }
+
+function renderTableBody(rows) {
+  const MAX = 250;
+  document.getElementById('table-body').innerHTML = rows.slice(0,MAX).map(r => {
+    const mile = String(r[col.MILE]||'').toLowerCase();
+    const op   = String(r[col.OPERATION]||'').toUpperCase();
+    const stay = parseFloat(r[col.STAY]);
+    const stayStr = !isNaN(stay) && stay > 0
+      ? `<b style="color:${stay>60?'#e53935':stay>30?'#F57C00':'#2E7D32'}">${stay}</b>`
+      : (r[col.STAY]||'—');
+    return `<tr>
+      <td><b>${r[col.PLATE]||'—'}</b></td>
+      <td>${shorten(r[col.CARRIER],28)}</td>
+      <td>${shorten(r[col.VEHICLE],24)}</td>
+      <td><span class="badge ${mile==='last_mile'?'b-lm':'b-mm'}">${mile==='last_mile'?'Last Mile':mile==='middle_mile'?'Middle Mile':mile||'—'}</span></td>
+      <td><span class="badge ${op==='INBOUND'?'b-in':'b-out'}">${op||'—'}</span></td>
+      <td>${r[col.CHECKIN]||'—'}</td>
+      <td>${r[col.CHECKOUT]||'—'}</td>
+      <td>${stayStr}</td>
+      <td>${r[col.ROUTE]||'—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('table-count').textContent =
+    `Exibindo ${Math.min(rows.length,MAX)} de ${rows.length} registros`;
+}
+
+function filterTable(q) {
+  if (!q.trim()) { renderTableBody(tableRows); return; }
+  const s = q.toLowerCase();
+  renderTableBody(tableRows.filter(r =>
+    [col.PLATE,col.CARRIER,col.VEHICLE,col.ROUTE]
+      .some(c => String(r[c]||'').toLowerCase().includes(s))
+  ));
+}
+
+function sortTable(colIdx) {
+  sortDir[colIdx] = !sortDir[colIdx];
+  const map = [col.PLATE,col.CARRIER,col.VEHICLE,col.MILE,col.OPERATION,col.CHECKIN,col.CHECKOUT,col.STAY,col.ROUTE];
+  const c = map[colIdx]; const dir = sortDir[colIdx] ? 1 : -1;
+  renderTableBody([...tableRows].sort((a,b) =>
+    String(a[c]||'').localeCompare(String(b[c]||''), 'pt-BR') * dir));
+}
+
+// ── Init ──────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
