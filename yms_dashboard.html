@@ -840,8 +840,8 @@ function renderKPIs() {
     const total = rows.length;
     const pct   = (n) => total > 0 ? (n / total * 100).toFixed(1) + '%' : '—%';
     const tempos = rows.map(r => effectiveMin(r)).filter(m => m !== null);
-    const okCnt  = tempos.filter(m => m < LIMIT_ALERT).length;
     const offCnt = tempos.filter(m => m >= LIMIT_OFFEND).length;
+    const okCnt  = tempos.filter(m => m < LIMIT_OFFEND).length;  // não ofensor = no tempo certo
     return { total, okCnt, offCnt, pct };
   }
 
