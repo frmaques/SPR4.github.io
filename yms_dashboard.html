@@ -494,23 +494,32 @@ let selectedDay = 0;    // 0 = hoje, 1 = ontem
 /* ═══════════════════════════════════════════════════════
    PARSE DE DATA — suporta ISO e formato BR
 ═══════════════════════════════════════════════════════ */
+// Offset de fuso: dados da base chegam 1h adiantados em relação ao horário local
+const TZ_OFFSET_MS = 1 * 60 * 60 * 1000; // +1 hora
+
 function parseDate(val) {
   if (!val) return null;
   const s = String(val).trim();
   if (!s || s === 'null' || s === 'undefined') return null;
 
+  let d;
   // ISO: 2026-05-15T09:18:01.000Z
-  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return new Date(s);
-
-  // BR: 15/05/2026 06:18:01
-  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}:\d{2}:\d{2})?/);
-  if (br) {
-    const base = `${br[3]}-${br[2]}-${br[1]}`;
-    return new Date(br[4] ? `${base}T${br[4]}` : base);
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    d = new Date(s);
+  } else {
+    // BR: 15/05/2026 06:18:01
+    const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}:\d{2}:\d{2})?/);
+    if (br) {
+      const base = `${br[3]}-${br[2]}-${br[1]}`;
+      d = new Date(br[4] ? `${base}T${br[4]}` : base);
+    } else {
+      d = new Date(s);
+    }
   }
 
-  const d = new Date(s);
-  return isNaN(d) ? null : d;
+  if (!d || isNaN(d)) return null;
+  // Aplica offset de fuso: soma 1 hora para corrigir horário da base
+  return new Date(d.getTime() + TZ_OFFSET_MS);
 }
 
 function toISODay(val) {
