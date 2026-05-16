@@ -346,9 +346,57 @@
     </div>
   </div>
 
-  <!-- Veículos NO PÁTIO -->
+  <!-- INDICADORES MIDDLE MILE -->
+  <div class="mile-section">
+    <div class="mile-header"><span class="pill pill-mm">MIDDLE MILE</span> Indicadores do período · regra: saída vs. horário estimado</div>
+    <div class="mile-kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Total Registros YMS</div>
+        <div class="kpi-val" id="mm-total" style="color:var(--text2)">—</div>
+        <div class="kpi-sub">rotas com registro</div>
+      </div>
+      <div class="kpi c-ok">
+        <div class="kpi-label">🟢 No Tempo Certo</div>
+        <div class="kpi-val" id="mm-ok">—</div>
+        <div class="kpi-pct" id="mm-ok-pct">— % do total</div>
+      </div>
+      <div class="kpi c-offend">
+        <div class="kpi-label">❌ Ofensores YMS</div>
+        <div class="kpi-val" id="mm-off">—</div>
+        <div class="kpi-pct" id="mm-off-pct">— % do total</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle Mile — Atrasados no pátio (sem checkout após hora estimada) -->
   <div class="sec-title">
-    🏁 Veículos no Pátio Agora
+    🕐 Middle Mile — Atrasados no Pátio
+    <span class="cnt" id="cnt-mm-late">0</span>
+  </div>
+  <div class="table-card">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Atraso</th>
+            <th>Placa</th>
+            <th>Transportadora</th>
+            <th>Modal</th>
+            <th>Operação</th>
+            <th>Entrada</th>
+            <th>Est. Saída</th>
+          </tr>
+        </thead>
+        <tbody id="tb-mm-late">
+          <tr><td colspan="7" class="no-data">⏳ Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Veículos NO PÁTIO (Last Mile) -->
+  <div class="sec-title">
+    🏁 Last Mile — Veículos no Pátio Agora
     <span class="cnt" id="cnt-patio">0</span>
   </div>
   <div class="table-card">
@@ -413,7 +461,7 @@
 ═══════════════════════════════════════════════════════ */
 const APPS_SCRIPT_URL =
   'https://script.google.com/a/macros/mercadolivre.com/s/' +
-  'AKfycbzu4JDLf8WSR3WQZNT_W1vdobpYEbxGfT8GFpl-Za8XWhCfuyr3lwUnEsTgKS-e-sqx/exec';
+  'AKfycbwr04XEmzvLcRQNyw0HeEGbiCeS-xk9uzX1J0bqDhFjg9B5DJNUby0ABdRerM9JSUwaSA/exec';
 
 const LIMIT_ALERT   = 20;   // min — aviso amarelo
 const LIMIT_CRIT    = 25;   // min — crítico laranja
@@ -423,10 +471,11 @@ const LIMIT_OFFEND  = 30;   // min — ofensor vermelho
    ESTADO
 ═══════════════════════════════════════════════════════ */
 let allData     = [];
-let filteredIn  = [];   // no pátio (sem checkout)
-let filteredOut = [];   // já saíram (com checkout)
-let timerUI     = null; // setInterval para atualizar timers na tela
-let refreshData = null; // setInterval para refetch de dados
+let filteredIn  = [];   // LM no pátio (sem checkout)
+let filteredOut = [];   // LM já saíram (com checkout)
+let filteredMM  = [];   // todos os Middle Mile do período
+let timerUI     = null;
+let refreshData = null;
 let selectedDay = 0;    // 0 = hoje, 1 = ontem
 
 /* ═══════════════════════════════════════════════════════
@@ -487,16 +536,18 @@ function remapRow(raw) {
     return raw[alt] !== undefined ? raw[alt] : '';
   };
 
-  const transp   = g('request.carrier.name') || g('request_carrier_name') || '';
-  const placa    = g('request.vehicle.license_plate') || g('request_vehicle_license_plate') || '';
-  const modal    = g('request.vehicle.description') || g('request_vehicle_description') || '';
-  const tipo     = String(g('purpose.mile') || g('purpose_mile') || '').toLowerCase();
-  const operacao = String(g('purpose.process') || g('purpose_process') || '').toUpperCase();
-  const checkin  = g('gate_checkin_date') || '';
-  const checkout = g('gate.checkout.date') || g('gate_checkout_date') || '';
-  const tempMin  = g('gate.facility_stay_time_minutes') || g('gate_facility_stay_time_minutes');
+  const transp      = g('request.carrier.name') || g('request_carrier_name') || '';
+  const placa       = g('request.vehicle.license_plate') || g('request_vehicle_license_plate') || '';
+  const modal       = g('request.vehicle.description') || g('request_vehicle_description') || '';
+  const tipo        = String(g('purpose.mile') || g('purpose_mile') || '').toLowerCase();
+  const operacao    = String(g('purpose.process') || g('purpose_process') || '').toUpperCase();
+  const checkin     = g('gate_checkin_date') || '';
+  const checkout    = g('gate.checkout.date') || g('gate_checkout_date') || '';
+  const tempMin     = g('gate.facility_stay_time_minutes') || g('gate_facility_stay_time_minutes');
+  // Horário estimado de saída — exclusivo Middle Mile
+  const estCheckout = g('gate.checkout.estimated_time') || g('gate_checkout_estimated_time') || '';
 
-  return { transp, placa, modal, tipo, operacao, checkin, checkout, tempMin };
+  return { transp, placa, modal, tipo, operacao, checkin, checkout, tempMin, estCheckout };
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -665,11 +716,17 @@ function applyFilters() {
     return true;
   });
 
-  // Separa: sem checkout = pátio | com checkout = histórico
-  filteredIn  = filtered.filter(r => !r.checkout || String(r.checkout).trim() === '' || r.checkout === null);
-  filteredOut = filtered.filter(r =>  r.checkout && String(r.checkout).trim() !== '' && r.checkout !== null);
+  const hasCheckout = r => r.checkout && String(r.checkout).trim() !== '' && r.checkout !== null;
+
+  // Last Mile: pátio = sem checkout | histórico = com checkout
+  filteredIn  = filtered.filter(r => r.tipo === 'last_mile' && !hasCheckout(r));
+  filteredOut = filtered.filter(r => r.tipo === 'last_mile' &&  hasCheckout(r));
+
+  // Middle Mile: todos (regra baseada em horário estimado, não em checkout)
+  filteredMM  = filtered.filter(r => r.tipo === 'middle_mile');
 
   renderPatio();
+  renderMMLate();
   renderHist();
   renderKPIs();
   renderAlertBanner();
@@ -743,6 +800,66 @@ function renderPatio() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   RENDER — MIDDLE MILE ATRASADOS (sem checkout após hora estimada)
+═══════════════════════════════════════════════════════ */
+function renderMMLate() {
+  const tbody = document.getElementById('tb-mm-late');
+  const cnt   = document.getElementById('cnt-mm-late');
+
+  // Apenas veículos ainda no pátio que já passaram do horário estimado
+  const late = filteredMM
+    .filter(r => {
+      const hasOut = r.checkout && String(r.checkout).trim();
+      if (hasOut) return false;           // já saiu — vai para histórico
+      const delay = mmDelayMin(r);
+      return delay !== null && delay > 0; // passou do estimado
+    })
+    .sort((a, b) => (mmDelayMin(b) ?? 0) - (mmDelayMin(a) ?? 0));
+
+  cnt.textContent = late.length;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  if (late.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 7; td.className = 'no-data';
+    td.textContent = '✅ Nenhum veículo Middle Mile atrasado no pátio.';
+    tr.appendChild(td); tbody.appendChild(tr);
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  late.forEach(r => {
+    const delay = mmDelayMin(r);
+    const tr = document.createElement('tr');
+    tr.className = 'row-offend';
+    tr.dataset.estCheckout = r.estCheckout; // para timer ao vivo
+
+    const addTd = (val, cls) => {
+      const td = document.createElement('td');
+      if (cls) td.className = cls;
+      td.textContent = String(val ?? '—'); // textContent — XSS safe
+      return td;
+    };
+
+    // Atraso em minutos (piscando)
+    const tdDelay = addTd((delay ?? 0) + ' min atrasado', 'timer-offend');
+    tdDelay.dataset.mmDelayCell = 'true';
+    tr.appendChild(tdDelay);
+
+    tr.appendChild(addTd(r.placa));
+    tr.appendChild(addTd(r.transp));
+    tr.appendChild(addTd(r.modal));
+    tr.appendChild(addTd(r.operacao));
+    tr.appendChild(addTd(fmtTime(r.checkin)));
+    tr.appendChild(addTd(fmtTime(r.estCheckout)));
+
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+
+/* ═══════════════════════════════════════════════════════
    RENDER — HISTÓRICO DE SAÍDAS
 ═══════════════════════════════════════════════════════ */
 function renderHist() {
@@ -804,7 +921,7 @@ function renderHist() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   TEMPO EFETIVO — in yard = live timer; saído = tempo_min
+   TEMPO EFETIVO (Last Mile) — in yard = live timer; saído = tempo_min
 ═══════════════════════════════════════════════════════ */
 function effectiveMin(r) {
   if (r.checkout && String(r.checkout).trim()) {
@@ -812,6 +929,30 @@ function effectiveMin(r) {
     return isNaN(t) ? null : t;
   }
   return getMinutesLive(r.checkin);
+}
+
+/* ═══════════════════════════════════════════════════════
+   MIDDLE MILE — lógica baseada em horário estimado de saída
+═══════════════════════════════════════════════════════ */
+// Minutos de atraso em relação ao horário estimado de saída:
+// positivo = atrasado, negativo = ainda dentro do prazo
+function mmDelayMin(r) {
+  const est = parseDate(r.estCheckout);
+  if (!est) return null;
+  if (r.checkout && String(r.checkout).trim()) {
+    // Já saiu: usa horário real de saída
+    const actual = parseDate(r.checkout);
+    if (!actual) return null;
+    return Math.round((actual.getTime() - est.getTime()) / 60000);
+  }
+  // Ainda no pátio: usa horário atual
+  return Math.round((Date.now() - est.getTime()) / 60000);
+}
+
+// Ofensor MM = saiu após o estimado OU ainda no pátio após o estimado
+function isMmOffender(r) {
+  const delay = mmDelayMin(r);
+  return delay !== null && delay > 0;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -852,6 +993,20 @@ function renderKPIs() {
   setText('lm-off',   lm.offCnt);
   document.getElementById('lm-ok-pct').textContent  = lm.pct(lm.okCnt)  + ' do total YMS';
   document.getElementById('lm-off-pct').textContent = lm.pct(lm.offCnt) + ' do total YMS';
+
+  // Middle Mile — regra: offensor = saiu/está após horário estimado de saída
+  const mmTotal  = filteredMM.length;
+  const mmPct    = n => mmTotal > 0 ? (n / mmTotal * 100).toFixed(1) + '%' : '—%';
+  const mmOffCnt = filteredMM.filter(r => isMmOffender(r)).length;
+  const mmOkCnt  = filteredMM.filter(r => {
+    const delay = mmDelayMin(r);
+    return delay !== null && delay <= 0;
+  }).length;
+  setText('mm-total', mmTotal);
+  setText('mm-ok',    mmOkCnt);
+  setText('mm-off',   mmOffCnt);
+  document.getElementById('mm-ok-pct').textContent  = mmPct(mmOkCnt)  + ' do total YMS';
+  document.getElementById('mm-off-pct').textContent = mmPct(mmOffCnt) + ' do total YMS';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -902,6 +1057,14 @@ function startTimerLoop() {
         timerTd.className = 'timer-' + st;
         timerTd.textContent = min !== null ? min + ' min' : '—';
       }
+    });
+
+    // Atualiza células de atraso Middle Mile
+    document.querySelectorAll('#tb-mm-late tr[data-est-checkout]').forEach(tr => {
+      const estCheckout = tr.dataset.estCheckout;
+      const delay = Math.round((Date.now() - (parseDate(estCheckout)?.getTime() ?? Date.now())) / 60000);
+      const cell = tr.querySelector('[data-mm-delay-cell]');
+      if (cell) cell.textContent = delay > 0 ? delay + ' min atrasado' : 'No prazo';
     });
 
     // Reatualiza KPIs e banner sem re-render completo
