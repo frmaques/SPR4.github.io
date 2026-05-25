@@ -7,238 +7,261 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg:       #0d0f18;
-      --surface:  #161927;
-      --surface2: #1f2235;
-      --surface3: #272b42;
-      --ok:       #27ae60;
-      --ok-bg:    rgba(39,174,96,.12);
-      --alert:    #f0c040;
-      --alert-bg: rgba(240,192,64,.12);
-      --critical: #e67e22;
-      --crit-bg:  rgba(230,126,34,.12);
-      --offend:   #e74c3c;
-      --offend-bg:rgba(231,76,60,.12);
-      --accent:   #FFE600;
-      --blue:     #00B1EA;
-      --text:     #e8eaf2;
-      --text2:    #9499b5;
-      --border:   rgba(255,255,255,0.07);
-      --radius:   10px;
-    }
+
     body {
-      background: var(--bg);
-      color: var(--text);
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      font-size: 14px;
-      min-height: 100vh;
+      font-size: 14px; min-height: 100vh;
+      transition: background .3s, color .3s;
     }
+    body.light { background: #EBEBEB; color: #333; }
+    body.dark  { background: #0d0f18; color: #e8eaf2; }
 
     /* ── HEADER ── */
     header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 11px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
+      background: #2c2c2c;
+      border-top: 2px solid #FFE600;
+      border-bottom: 2px solid #FFE600;
+      padding: 10px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
       position: sticky; top: 0; z-index: 100;
     }
-    .logo { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; }
-    .badge { background: var(--accent); color: #111; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
-    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    #clock { font-size: 20px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
-    #last-upd { font-size: 11px; color: var(--text2); }
+
+    .logo { display: flex; align-items: center; gap: 10px; border-left: 3px solid #FFE600; padding-left: 10px; }
+    .logo-title { font-size: 20px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: #fff; }
+    .logo-title span { color: #FFE600; }
+
+    .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #FFE600; color: #222; }
+
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    #clock { font-size: 18px; font-weight: 700; color: #FFE600; font-variant-numeric: tabular-nums; text-align: center; }
+    #last-upd { font-size: 10px; color: #999; text-align: center; }
+
     .refresh-box {
-      display: flex; align-items: center; gap: 6px;
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 4px 10px; font-size: 12px;
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px; padding: 3px 9px; font-size: 11px;
     }
-    .refresh-box label { color: var(--text2); }
-    #refresh-sel {
-      background: transparent; border: none; color: var(--text);
-      font-size: 12px; cursor: pointer; outline: none;
+    .refresh-box label { color: #aaa; }
+    #refresh-sel { background: transparent; border: none; font-size: 11px; cursor: pointer; outline: none; color: #fff; }
+    #refresh-sel option { background: #2c2c2c; }
+
+    .toggle-btn {
+      display: flex; align-items: center; gap: 4px;
+      border: none; border-radius: 20px; padding: 3px 10px;
+      font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: background .3s, color .3s;
     }
-    #refresh-sel option { background: var(--surface2); }
+    body.light .toggle-btn { background: rgba(255,255,255,.12); color: #fff; }
+    body.dark  .toggle-btn { background: #FFE600; color: #333; }
 
     /* ── DAY BUTTONS ── */
     .day-btn {
-      background: var(--surface2); border: 1px solid var(--border);
-      color: var(--text2); border-radius: 6px; padding: 5px 13px;
-      font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 11px; font-weight: 700; border: 1px solid; cursor: pointer; transition: all .15s;
     }
-    .day-btn:hover { border-color: var(--blue); color: var(--text); }
-    .day-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
-
-    /* ── MILE KPI SECTION ── */
-    .mile-section { display: flex; flex-direction: column; gap: 8px; }
-    .mile-header {
-      font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .6px; color: var(--text2);
-      display: flex; align-items: center; gap: 6px;
-    }
-    .mile-header .pill {
-      padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
-    }
-    .pill-lm { background: rgba(0,177,234,.18); color: var(--blue); }
-    .pill-mm { background: rgba(255,230,0,.14); color: var(--accent); }
-    .mile-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; }
-    .kpi-pct { font-size: 11px; color: var(--text2); margin-top: 2px; }
-    .kpi-pct strong { color: inherit; }
+    .day-btn        { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); color: #ccc; }
+    .day-btn.active { background: #FFE600; border-color: #FFE600; color: #222; }
 
     /* ── FILTER BAR ── */
     .filter-bar {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 9px 20px;
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 8px 20px;
+      display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+      border-bottom: 1px solid; transition: background .3s, border-color .3s;
     }
+    body.light .filter-bar { background: #fff; border-color: rgba(0,0,0,.1); }
+    body.dark  .filter-bar { background: #161927; border-color: rgba(255,255,255,.07); }
+
     .fg { display: flex; align-items: center; gap: 5px; }
-    .fg label { font-size: 11px; color: var(--text2); white-space: nowrap; }
-    .fg input, .fg select {
-      background: var(--surface2); border: 1px solid var(--border);
-      color: var(--text); border-radius: 6px; padding: 5px 9px;
-      font-size: 12px; outline: none; transition: border-color .2s;
+    .fg label { font-size: 11px; font-weight: 600; white-space: nowrap; }
+    body.light .fg label { color: #555; }
+    body.dark  .fg label { color: #9499b5; }
+
+    .fg select {
+      border-radius: 6px; padding: 4px 9px; font-size: 11px; border: 1px solid;
+      outline: none; transition: all .2s;
     }
-    .fg input:focus, .fg select:focus { border-color: var(--blue); }
-    .fg input[type="date"] { cursor: pointer; color-scheme: dark; }
-    .fg select option { background: var(--surface2); }
-    .btn { border: none; border-radius: 6px; padding: 5px 13px; font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    body.light .fg select { background: #f5f5f5; border-color: #ddd; color: #333; }
+    body.dark  .fg select { background: #1f2235; border-color: rgba(255,255,255,.07); color: #e8eaf2; }
+    body.light .fg select option { background: #fff; }
+    body.dark  .fg select option { background: #1f2235; }
+
+    .btn { border: none; border-radius: 6px; padding: 4px 12px; font-size: 11px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
     .btn:hover { opacity: .8; }
-    .btn-yellow { background: var(--accent); color: #111; }
-    .btn-ghost { background: var(--surface3); color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost { border: 1px solid; }
+    body.light .btn-ghost { background: #f5f5f5; color: #666; border-color: #ddd; }
+    body.dark  .btn-ghost { background: #1f2235; color: #9499b5; border-color: rgba(255,255,255,.07); }
 
     /* ── MAIN ── */
-    main { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+    main { padding: 14px 20px; display: flex; flex-direction: column; gap: 14px; }
 
     /* ── ALERT BANNER ── */
-    #alert-banner {
-      display: none;
-      background: rgba(231,76,60,.18);
-      border: 1px solid var(--offend);
-      border-radius: var(--radius);
-      padding: 10px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #ff8a80;
-      animation: pulse-border 1.5s ease-in-out infinite;
+    #alert-banner { display: none; }
+    .alert-banner-offend {
+      border: 2px solid #e74c3c; border-radius: 10px;
+      padding: 12px 20px; font-size: 15px; font-weight: 700;
+      text-align: center; letter-spacing: .3px;
+      animation: pulse-border 1.2s ease-in-out infinite;
     }
+    body.light .alert-banner-offend { background: rgba(231,76,60,.08); color: #b71c1c; }
+    body.dark  .alert-banner-offend { background: rgba(231,76,60,.15); color: #ff8a80; }
     @keyframes pulse-border {
-      0%,100% { border-color: var(--offend); }
-      50%      { border-color: rgba(231,76,60,.3); }
+      0%,100% { border-color: #e74c3c; box-shadow: 0 0 0 0 rgba(231,76,60,0); }
+      50%      { border-color: rgba(231,76,60,.5); box-shadow: 0 0 8px 2px rgba(231,76,60,.2); }
     }
 
-    /* ── STATUS ── */
+    /* ── STATUS MSG ── */
     #status-msg {
-      display: none; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 12px 16px; text-align: center;
-      font-size: 13px; color: var(--text2);
+      display: none; border-radius: 10px; border: 1px solid;
+      padding: 12px 16px; text-align: center; font-size: 13px;
     }
-    #status-msg.err { border-color: var(--offend); color: #ff8a80; display: block; }
+    body.light #status-msg { background: #fff; border-color: #e0e0e0; color: #666; }
+    body.dark  #status-msg { background: #1f2235; border-color: rgba(255,255,255,.07); color: #9499b5; }
+    #status-msg.err { border-color: #e74c3c !important; display: block; }
+    body.light #status-msg.err { color: #b71c1c; }
+    body.dark  #status-msg.err { color: #ff8a80; }
     #status-msg.loading { display: block; }
 
     /* ── KPI CARDS ── */
     .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; }
     .kpi {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 14px 16px;
-      display: flex; flex-direction: column; gap: 4px;
+      border-radius: 10px; padding: 14px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+      border: 1px solid; border-top-width: 3px;
+      transition: background .3s, border-color .3s;
     }
-    .kpi-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
-    .kpi-val { font-size: 28px; font-weight: 700; line-height: 1.1; }
-    .kpi-sub { font-size: 10px; color: var(--text2); }
-    .kpi.c-ok     .kpi-val { color: var(--ok); }
-    .kpi.c-alert  .kpi-val { color: var(--alert); }
-    .kpi.c-crit   .kpi-val { color: var(--critical); }
-    .kpi.c-offend .kpi-val { color: var(--offend); }
-    .kpi.c-blue   .kpi-val { color: var(--blue); }
+    body.light .kpi { background: #fff; border-color: #e0e0e0; }
+    body.dark  .kpi { background: #161927; border-color: rgba(255,255,255,.07); }
+
+    .kpi.c-blue   { border-top-color: #3483FA !important; }
+    .kpi.c-alert  { border-top-color: #F0A500 !important; }
+    .kpi.c-crit   { border-top-color: #E37F00 !important; }
+    .kpi.c-ok     { border-top-color: #00A650 !important; }
+    .kpi.c-offend { border-top-color: #F23D4F !important; }
+
+    .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .6px; font-weight: 700; }
+    body.light .kpi-label { color: #888; }
+    body.dark  .kpi-label { color: #9499b5; }
+    .kpi-val { font-size: 30px; font-weight: 800; line-height: 1; }
+    .kpi.c-blue   .kpi-val { color: #3483FA; }
+    .kpi.c-alert  .kpi-val { color: #F0A500; }
+    .kpi.c-crit   .kpi-val { color: #E37F00; }
+    .kpi.c-ok     .kpi-val { color: #00A650; }
+    .kpi.c-offend .kpi-val { color: #F23D4F; }
+    .kpi-sub { font-size: 10px; }
+    body.light .kpi-sub { color: #bbb; }
+    body.dark  .kpi-sub { color: #9499b5; }
 
     /* ── SECTION TITLE ── */
     .sec-title {
-      font-size: 12px; color: var(--text2); text-transform: uppercase;
-      letter-spacing: .5px; font-weight: 700;
-      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: .6px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
+    body.light .sec-title { color: #888; }
+    body.dark  .sec-title { color: #9499b5; }
     .sec-title .cnt {
-      background: var(--surface3); border-radius: 20px;
-      padding: 2px 9px; font-size: 11px; color: var(--text2); font-weight: 600;
+      border-radius: 20px; padding: 2px 9px; font-size: 11px; font-weight: 600;
     }
+    body.light .sec-title .cnt { background: #e0e0e0; color: #666; }
+    body.dark  .sec-title .cnt { background: #272b42; color: #9499b5; }
 
     /* ── TABLE CARD ── */
     .table-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); overflow: hidden;
+      border-radius: 10px; overflow: hidden; border: 1px solid;
+      transition: background .3s, border-color .3s;
     }
-    .table-head {
-      padding: 12px 16px 10px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
+    body.light .table-card { background: #fff; border-color: #e0e0e0; }
+    body.dark  .table-card { background: #161927; border-color: rgba(255,255,255,.07); }
+
     .table-scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     thead th {
-      background: var(--surface2); padding: 9px 13px; text-align: left;
-      font-size: 11px; color: var(--text2); letter-spacing: .3px;
-      white-space: nowrap; cursor: pointer; user-select: none;
+      padding: 9px 12px; text-align: center;
+      font-size: 11px; letter-spacing: .4px; font-weight: 700;
+      white-space: nowrap; border-bottom: 1px solid;
+      transition: background .3s;
     }
-    thead th:hover { color: var(--text); }
-    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    body.light thead th { background: #f5f5f5; color: #777; border-color: #eee; }
+    body.dark  thead th { background: #1f2235; color: #9499b5; border-color: rgba(255,255,255,.07); }
+    tbody tr { border-bottom: 1px solid; transition: background .1s; }
+    body.light tbody tr { border-color: #f0f0f0; }
+    body.dark  tbody tr { border-color: rgba(255,255,255,.05); }
     tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: var(--surface2); }
-    tbody td { padding: 9px 13px; white-space: nowrap; }
-    .no-data { text-align: center; padding: 32px; color: var(--text2); font-size: 13px; }
+    body.light tbody tr:hover { background: #f9f9f9; }
+    body.dark  tbody tr:hover { background: #1f2235; }
+    tbody td { padding: 9px 12px; white-space: nowrap; text-align: center; }
+    body.light tbody td { color: #333; }
+    body.dark  tbody td { color: #e8eaf2; }
+    .no-data { text-align: center; padding: 32px; font-size: 13px; }
+    body.light .no-data { color: #aaa; }
+    body.dark  .no-data { color: #9499b5; }
 
-    /* ── ROW STATUS COLORS ── */
-    tbody tr.row-ok     { border-left: 3px solid var(--ok); }
-    tbody tr.row-alert  { border-left: 3px solid var(--alert); }
-    tbody tr.row-crit   { border-left: 3px solid var(--critical); }
-    tbody tr.row-offend { border-left: 3px solid var(--offend); background: rgba(231,76,60,.05); }
-    tbody tr.row-offend:hover { background: rgba(231,76,60,.1); }
+    /* ── ROW STATUS ── */
+    tbody tr.row-ok     { border-left: 3px solid #00A650; }
+    tbody tr.row-alert  { border-left: 3px solid #F0A500; }
+    tbody tr.row-crit   { border-left: 3px solid #E37F00; }
+    tbody tr.row-offend { border-left: 3px solid #F23D4F; }
+    body.light tbody tr.row-offend { background: rgba(242,61,79,.04); }
+    body.dark  tbody tr.row-offend { background: rgba(231,76,60,.05); }
 
     /* ── STATUS BADGE ── */
     .badge-status {
       display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
     }
-    .badge-ok     { background: var(--ok-bg);    color: var(--ok); }
-    .badge-alert  { background: var(--alert-bg); color: var(--alert); }
-    .badge-crit   { background: var(--crit-bg);  color: var(--critical); }
-    .badge-offend { background: var(--offend-bg);color: var(--offend); animation: flash 1.2s ease-in-out infinite; }
+    .badge-ok     { background: rgba(0,166,80,.1);  color: #007a3c; }
+    .badge-alert  { background: rgba(240,165,0,.1); color: #a06000; }
+    .badge-crit   { background: rgba(227,127,0,.1); color: #995500; }
+    .badge-offend { background: rgba(242,61,79,.1); color: #c0000f; animation: flash 1.2s ease-in-out infinite; }
+    body.dark .badge-ok     { color: #27ae60; }
+    body.dark .badge-alert  { color: #f0c040; }
+    body.dark .badge-crit   { color: #e67e22; }
+    body.dark .badge-offend { color: #e74c3c; }
     @keyframes flash { 0%,100%{opacity:1} 50%{opacity:.55} }
 
     /* ── TIMER CELL ── */
-    .timer-ok     { color: var(--ok);       font-weight: 700; font-size: 14px; }
-    .timer-alert  { color: var(--alert);    font-weight: 700; font-size: 14px; }
-    .timer-crit   { color: var(--critical); font-weight: 700; font-size: 14px; }
-    .timer-offend { color: var(--offend);   font-weight: 800; font-size: 15px; animation: flash 1.2s ease-in-out infinite; }
+    .timer-ok     { color: #00A650; font-weight: 700; font-size: 13px; }
+    .timer-alert  { color: #F0A500; font-weight: 700; font-size: 13px; }
+    .timer-crit   { color: #E37F00; font-weight: 700; font-size: 13px; }
+    .timer-offend { color: #F23D4F; font-weight: 800; font-size: 14px; animation: flash 1.2s ease-in-out infinite; }
 
     /* ── COLLAPSIBLE HISTORY ── */
     .hist-toggle {
-      width: 100%; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 10px 16px; cursor: pointer;
-      font-size: 12px; color: var(--text2); font-weight: 600; text-align: left;
+      width: 100%; border-radius: 10px; padding: 10px 16px; cursor: pointer;
+      font-size: 12px; font-weight: 600; text-align: left; border: 1px solid;
       display: flex; align-items: center; justify-content: space-between;
-      transition: background .15s;
+      transition: background .15s, border-color .3s;
     }
-    .hist-toggle:hover { background: var(--surface3); }
+    body.light .hist-toggle { background: #fff; border-color: #e0e0e0; color: #555; }
+    body.dark  .hist-toggle { background: #1f2235; border-color: rgba(255,255,255,.07); color: #9499b5; }
+    body.light .hist-toggle:hover { background: #f5f5f5; }
+    body.dark  .hist-toggle:hover { background: #272b42; }
     .hist-toggle .arrow { transition: transform .2s; }
     .hist-toggle.open .arrow { transform: rotate(180deg); }
     #hist-section { display: none; }
 
     /* ── FOOTER ── */
-    footer { padding: 12px 20px; text-align: center; font-size: 11px; color: var(--text2); border-top: 1px solid var(--border); }
+    footer {
+      padding: 10px 20px; text-align: center; font-size: 11px;
+      transition: background .3s, color .3s, border-color .3s;
+    }
+    body.light footer { background: #2c2c2c; color: #aaa; border-top: none; }
+    body.dark  footer { background: #0d0f18; color: #9499b5; border-top: 1px solid rgba(255,255,255,.07); }
   </style>
 </head>
-<body>
+<body class="light">
 
 <!-- HEADER -->
 <header>
-  <div class="logo">🚛 YMS Monitor <span class="badge">SPR4</span></div>
+  <div class="logo">
+    <span style="font-size:20px">🕐</span>
+    <span class="logo-title">YMS <span>Monitor</span></span>
+    <span class="badge">SPR4</span>
+  </div>
   <div class="header-right">
-    <span id="clock">--:--:--</span>
-    <span id="last-upd">—</span>
+    <div>
+      <div id="clock">--:--:--</div>
+      <div id="last-upd">—</div>
+    </div>
     <div class="refresh-box">
       <label>🔄</label>
       <select id="refresh-sel">
@@ -249,33 +272,16 @@
         <option value="300">5 min</option>
       </select>
     </div>
+    <button class="toggle-btn" id="theme-toggle" onclick="toggleTheme()">
+      <span id="toggle-icon">🌙</span>
+      <span id="toggle-label">Modo Noturno</span>
+    </button>
   </div>
 </header>
 
 <!-- FILTROS -->
 <div class="filter-bar">
-  <div class="fg">
-    <label>Tipo:</label>
-    <select id="f-tipo">
-      <option value="">Todos</option>
-      <option value="last_mile" selected>Last Mile</option>
-      <option value="middle_mile">Middle Mile</option>
-    </select>
-  </div>
-  <div class="fg" style="gap:4px">
-    <label>📅</label>
-    <button class="day-btn active" data-day="0" onclick="selectDay(0)">D-0 Hoje</button>
-    <button class="day-btn"        data-day="1" onclick="selectDay(1)">D-1 Ontem</button>
-  </div>
-  <div class="fg">
-    <label>Operação:</label>
-    <select id="f-op">
-      <option value="">Todas</option>
-      <option value="OUTBOUND">OUTBOUND</option>
-      <option value="INBOUND">INBOUND</option>
-    </select>
-  </div>
-  <div class="fg">
+<div class="fg">
     <label>Transportadora:</label>
     <select id="f-transp"><option value="">Todas</option></select>
   </div>
@@ -287,20 +293,12 @@
   <!-- Status -->
   <div id="status-msg" class="loading">⏳ Carregando dados...</div>
 
-  <!-- Banner de alerta -->
-  <div id="alert-banner"></div>
-
-  <!-- KPIs GLOBAIS -->
+  <!-- KPIs LINHA 1: situação no pátio -->
   <div class="kpi-row">
     <div class="kpi c-blue">
-      <div class="kpi-label">No Pátio Agora</div>
+      <div class="kpi-label">Carregando</div>
       <div class="kpi-val" id="k-patio">—</div>
       <div class="kpi-sub">veículos presentes</div>
-    </div>
-    <div class="kpi c-ok">
-      <div class="kpi-label">🟢 No Tempo Certo</div>
-      <div class="kpi-val" id="k-ok">—</div>
-      <div class="kpi-sub">&lt; 20 min</div>
     </div>
     <div class="kpi c-alert">
       <div class="kpi-label">⚠️ Alerta</div>
@@ -312,91 +310,28 @@
       <div class="kpi-val" id="k-crit">—</div>
       <div class="kpi-sub">25 – 29 min</div>
     </div>
+  </div>
+
+  <!-- Banner de ofensores -->
+  <div id="alert-banner"></div>
+
+  <!-- KPIs LINHA 2: histórico de saídas -->
+  <div class="kpi-row">
+    <div class="kpi c-ok">
+      <div class="kpi-label">✅ Saíram dentro do limite</div>
+      <div class="kpi-val" id="k-out-ok">—</div>
+      <div class="kpi-sub" id="k-out-ok-pct">permanência &lt; 30 min</div>
+    </div>
     <div class="kpi c-offend">
-      <div class="kpi-label">❌ Ofensores</div>
-      <div class="kpi-val" id="k-offend">—</div>
-      <div class="kpi-sub">≥ 30 min</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Saídos</div>
-      <div class="kpi-val" id="k-saidos" style="color:var(--text2)">—</div>
-      <div class="kpi-sub">com checkout</div>
+      <div class="kpi-label">❌ Saíram como ofensor</div>
+      <div class="kpi-val" id="k-out-off">—</div>
+      <div class="kpi-sub" id="k-out-off-pct">permanência ≥ 30 min</div>
     </div>
   </div>
 
-  <!-- INDICADORES LAST MILE -->
-  <div class="mile-section">
-    <div class="mile-header"><span class="pill pill-lm">LAST MILE</span> Indicadores do período</div>
-    <div class="mile-kpi-row">
-      <div class="kpi">
-        <div class="kpi-label">Total Registros YMS</div>
-        <div class="kpi-val" id="lm-total" style="color:var(--text2)">—</div>
-        <div class="kpi-sub">rotas com registro</div>
-      </div>
-      <div class="kpi c-ok">
-        <div class="kpi-label">🟢 No Tempo Certo</div>
-        <div class="kpi-val" id="lm-ok">—</div>
-        <div class="kpi-pct" id="lm-ok-pct">— % do total</div>
-      </div>
-      <div class="kpi c-offend">
-        <div class="kpi-label">❌ Ofensores YMS</div>
-        <div class="kpi-val" id="lm-off">—</div>
-        <div class="kpi-pct" id="lm-off-pct">— % do total</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- INDICADORES MIDDLE MILE -->
-  <div class="mile-section">
-    <div class="mile-header"><span class="pill pill-mm">MIDDLE MILE</span> Indicadores do período · regra: saída vs. horário estimado</div>
-    <div class="mile-kpi-row">
-      <div class="kpi">
-        <div class="kpi-label">Total Registros YMS</div>
-        <div class="kpi-val" id="mm-total" style="color:var(--text2)">—</div>
-        <div class="kpi-sub">rotas com registro</div>
-      </div>
-      <div class="kpi c-ok">
-        <div class="kpi-label">🟢 No Tempo Certo</div>
-        <div class="kpi-val" id="mm-ok">—</div>
-        <div class="kpi-pct" id="mm-ok-pct">— % do total</div>
-      </div>
-      <div class="kpi c-offend">
-        <div class="kpi-label">❌ Ofensores YMS</div>
-        <div class="kpi-val" id="mm-off">—</div>
-        <div class="kpi-pct" id="mm-off-pct">— % do total</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Middle Mile — Atrasados no pátio (sem checkout após hora estimada) -->
+  <!-- Veículos NO PÁTIO -->
   <div class="sec-title">
-    🕐 Middle Mile — Atrasados no Pátio
-    <span class="cnt" id="cnt-mm-late">0</span>
-  </div>
-  <div class="table-card">
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Atraso</th>
-            <th>Placa</th>
-            <th>Transportadora</th>
-            <th>Modal</th>
-            <th>Operação</th>
-            <th>Entrada</th>
-            <th>Est. Saída</th>
-          </tr>
-        </thead>
-        <tbody id="tb-mm-late">
-          <tr><td colspan="7" class="no-data">⏳ Carregando...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Veículos NO PÁTIO (Last Mile) -->
-  <div class="sec-title">
-    🏁 Last Mile — Veículos no Pátio Agora
+    🏁 Veículos no Pátio Agora
     <span class="cnt" id="cnt-patio">0</span>
   </div>
   <div class="table-card">
@@ -457,6 +392,18 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════
+   TEMA CLARO / NOTURNO
+═══════════════════════════════════════════════════════ */
+function toggleTheme() {
+  const body = document.body;
+  const isDark = body.classList.contains('dark');
+  body.classList.toggle('dark',  !isDark);
+  body.classList.toggle('light',  isDark);
+  document.getElementById('toggle-icon').textContent  = isDark ? '🌙' : '☀️';
+  document.getElementById('toggle-label').textContent = isDark ? 'Modo Noturno' : 'Modo Claro';
+}
+
+/* ═══════════════════════════════════════════════════════
    CONFIGURAÇÃO
 ═══════════════════════════════════════════════════════ */
 const APPS_SCRIPT_URL =
@@ -473,7 +420,6 @@ const LIMIT_OFFEND  = 30;   // min — ofensor vermelho
 let allData     = [];
 let filteredIn  = [];   // LM no pátio (sem checkout)
 let filteredOut = [];   // LM já saíram (com checkout)
-let filteredMM  = [];   // todos os Middle Mile do período
 let timerUI     = null;
 let refreshData = null;
 let selectedDay = 0;    // 0 = hoje, 1 = ontem
@@ -553,7 +499,6 @@ function remapRow(raw) {
   const checkin     = g('gate_checkin_date') || '';
   const checkout    = g('gate.checkout.date') || g('gate_checkout_date') || '';
   const tempMin     = g('gate.facility_stay_time_minutes') || g('gate_facility_stay_time_minutes');
-  // Horário estimado de saída — exclusivo Middle Mile
   const estCheckout = g('gate.checkout.estimated_time') || g('gate_checkout_estimated_time') || '';
 
   return { transp, placa, modal, tipo, operacao, checkin, checkout, tempMin, estCheckout };
@@ -704,9 +649,6 @@ function selectDay(day) {
 
 function getFilters() {
   return {
-    tipo:   document.getElementById('f-tipo').value,
-    date:   getDayISO(selectedDay),
-    op:     document.getElementById('f-op').value,
     transp: document.getElementById('f-transp').value,
   };
 }
@@ -715,13 +657,7 @@ function applyFilters() {
   const f = getFilters();
 
   const filtered = allData.filter(r => {
-    if (f.tipo   && r.tipo     !== f.tipo)   return false;
-    if (f.op     && r.operacao !== f.op)     return false;
-    if (f.transp && r.transp   !== f.transp) return false;
-    if (f.date) {
-      const d = toISODay(r.checkin);
-      if (d !== f.date) return false;
-    }
+    if (f.transp && r.transp !== f.transp) return false;
     return true;
   });
 
@@ -731,11 +667,8 @@ function applyFilters() {
   filteredIn  = filtered.filter(r => r.tipo === 'last_mile' && !hasCheckout(r));
   filteredOut = filtered.filter(r => r.tipo === 'last_mile' &&  hasCheckout(r));
 
-  // Middle Mile: todos (regra baseada em horário estimado, não em checkout)
-  filteredMM  = filtered.filter(r => r.tipo === 'middle_mile');
 
   renderPatio();
-  renderMMLate();
   renderHist();
   renderKPIs();
   renderAlertBanner();
@@ -799,7 +732,7 @@ function renderPatio() {
     tr.appendChild(addTd(r.placa));
     tr.appendChild(addTd(r.transp));
     tr.appendChild(addTd(r.modal));
-    tr.appendChild(addTd(r.tipo === 'last_mile' ? 'Last Mile' : r.tipo === 'middle_mile' ? 'Middle Mile' : r.tipo));
+    tr.appendChild(addTd(r.tipo === 'last_mile' ? 'Last Mile' : r.tipo));
     tr.appendChild(addTd(r.operacao));
     tr.appendChild(addTd(fmtTime(r.checkin)));
 
@@ -808,65 +741,6 @@ function renderPatio() {
   tbody.appendChild(frag);
 }
 
-/* ═══════════════════════════════════════════════════════
-   RENDER — MIDDLE MILE ATRASADOS (sem checkout após hora estimada)
-═══════════════════════════════════════════════════════ */
-function renderMMLate() {
-  const tbody = document.getElementById('tb-mm-late');
-  const cnt   = document.getElementById('cnt-mm-late');
-
-  // Apenas veículos ainda no pátio que já passaram do horário estimado
-  const late = filteredMM
-    .filter(r => {
-      const hasOut = r.checkout && String(r.checkout).trim();
-      if (hasOut) return false;           // já saiu — vai para histórico
-      const delay = mmDelayMin(r);
-      return delay !== null && delay > 0; // passou do estimado
-    })
-    .sort((a, b) => (mmDelayMin(b) ?? 0) - (mmDelayMin(a) ?? 0));
-
-  cnt.textContent = late.length;
-  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
-
-  if (late.length === 0) {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = 7; td.className = 'no-data';
-    td.textContent = '✅ Nenhum veículo Middle Mile atrasado no pátio.';
-    tr.appendChild(td); tbody.appendChild(tr);
-    return;
-  }
-
-  const frag = document.createDocumentFragment();
-  late.forEach(r => {
-    const delay = mmDelayMin(r);
-    const tr = document.createElement('tr');
-    tr.className = 'row-offend';
-    tr.dataset.estCheckout = r.estCheckout; // para timer ao vivo
-
-    const addTd = (val, cls) => {
-      const td = document.createElement('td');
-      if (cls) td.className = cls;
-      td.textContent = String(val ?? '—'); // textContent — XSS safe
-      return td;
-    };
-
-    // Atraso em minutos (piscando)
-    const tdDelay = addTd((delay ?? 0) + ' min atrasado', 'timer-offend');
-    tdDelay.dataset.mmDelayCell = 'true';
-    tr.appendChild(tdDelay);
-
-    tr.appendChild(addTd(r.placa));
-    tr.appendChild(addTd(r.transp));
-    tr.appendChild(addTd(r.modal));
-    tr.appendChild(addTd(r.operacao));
-    tr.appendChild(addTd(fmtTime(r.checkin)));
-    tr.appendChild(addTd(fmtTime(r.estCheckout)));
-
-    frag.appendChild(tr);
-  });
-  tbody.appendChild(frag);
-}
 
 /* ═══════════════════════════════════════════════════════
    RENDER — HISTÓRICO DE SAÍDAS
@@ -911,7 +785,7 @@ function renderHist() {
     tr.appendChild(addTd(r.placa));
     tr.appendChild(addTd(r.transp));
     tr.appendChild(addTd(r.modal));
-    tr.appendChild(addTd(r.tipo === 'last_mile' ? 'Last Mile' : r.tipo === 'middle_mile' ? 'Middle Mile' : r.tipo));
+    tr.appendChild(addTd(r.tipo === 'last_mile' ? 'Last Mile' : r.tipo));
     tr.appendChild(addTd(r.operacao));
     tr.appendChild(addTd(fmtTime(r.checkin)));
     tr.appendChild(addTd(fmtTime(r.checkout)));
@@ -930,7 +804,7 @@ function renderHist() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   TEMPO EFETIVO (Last Mile) — in yard = live timer; saído = tempo_min
+   TEMPO EFETIVO — in yard = live timer; saído = tempo_min
 ═══════════════════════════════════════════════════════ */
 function effectiveMin(r) {
   if (r.checkout && String(r.checkout).trim()) {
@@ -940,29 +814,6 @@ function effectiveMin(r) {
   return getMinutesLive(r.checkin);
 }
 
-/* ═══════════════════════════════════════════════════════
-   MIDDLE MILE — lógica baseada em horário estimado de saída
-═══════════════════════════════════════════════════════ */
-// Minutos de atraso em relação ao horário estimado de saída:
-// positivo = atrasado, negativo = ainda dentro do prazo
-function mmDelayMin(r) {
-  const est = parseDate(r.estCheckout);
-  if (!est) return null;
-  if (r.checkout && String(r.checkout).trim()) {
-    // Já saiu: usa horário real de saída
-    const actual = parseDate(r.checkout);
-    if (!actual) return null;
-    return Math.round((actual.getTime() - est.getTime()) / 60000);
-  }
-  // Ainda no pátio: usa horário atual
-  return Math.round((Date.now() - est.getTime()) / 60000);
-}
-
-// Ofensor MM = saiu após o estimado OU ainda no pátio após o estimado
-function isMmOffender(r) {
-  const delay = mmDelayMin(r);
-  return delay !== null && delay > 0;
-}
 
 /* ═══════════════════════════════════════════════════════
    KPIs
@@ -976,65 +827,47 @@ function renderKPIs() {
   const offend = mins.filter(m => m !== null && m >= LIMIT_OFFEND).length;
 
   setText('k-patio',  filteredIn.length);
-  setText('k-ok',     ok);
   setText('k-alert',  alert);
   setText('k-crit',   crit);
-  setText('k-offend', offend);
-  setText('k-saidos', filteredOut.length);
 
-  // ── Por mile: usa TODOS os registros filtrados (in + out) ──
-  const allFiltered = [...filteredIn, ...filteredOut];
-
-  function mileStats(mileKey) {
-    const rows  = allFiltered.filter(r => r.tipo === mileKey);
-    const total = rows.length;
-    const pct   = (n) => total > 0 ? (n / total * 100).toFixed(1) + '%' : '—%';
-    const tempos = rows.map(r => effectiveMin(r)).filter(m => m !== null);
-    const offCnt = tempos.filter(m => m >= LIMIT_OFFEND).length;
-    const okCnt  = tempos.filter(m => m < LIMIT_OFFEND).length;  // não ofensor = no tempo certo
-    return { total, okCnt, offCnt, pct };
-  }
-
-  // Last Mile — % sobre total de registros com tempo computável
-  const lm = mileStats('last_mile');
-  setText('lm-total', lm.total);
-  setText('lm-ok',    lm.okCnt);
-  setText('lm-off',   lm.offCnt);
-  document.getElementById('lm-ok-pct').textContent  = lm.pct(lm.okCnt)  + ' do total YMS';
-  document.getElementById('lm-off-pct').textContent = lm.pct(lm.offCnt) + ' do total YMS';
-
-  // Middle Mile — regra: offensor = saiu/está após horário estimado de saída
-  const mmTotal  = filteredMM.length;
-  const mmPct    = n => mmTotal > 0 ? (n / mmTotal * 100).toFixed(1) + '%' : '—%';
-  const mmOffCnt = filteredMM.filter(r => isMmOffender(r)).length;
-  const mmOkCnt  = filteredMM.filter(r => {
-    const delay = mmDelayMin(r);
-    return delay !== null && delay <= 0;
+  // ── Saídos: dentro e fora do limite de 30 min ──
+  const outOk  = filteredOut.filter(r => {
+    const t = Number(r.tempMin);
+    return !isNaN(t) && t < LIMIT_OFFEND;
   }).length;
-  setText('mm-total', mmTotal);
-  setText('mm-ok',    mmOkCnt);
-  setText('mm-off',   mmOffCnt);
-  document.getElementById('mm-ok-pct').textContent  = mmPct(mmOkCnt)  + ' do total YMS';
-  document.getElementById('mm-off-pct').textContent = mmPct(mmOffCnt) + ' do total YMS';
+  const outOff = filteredOut.filter(r => {
+    const t = Number(r.tempMin);
+    return !isNaN(t) && t >= LIMIT_OFFEND;
+  }).length;
+  const outTotal = outOk + outOff;
+  const pct = (n) => outTotal > 0 ? (n / outTotal * 100).toFixed(1) + '% do total' : '— % do total';
+
+  setText('k-out-ok',  outOk);
+  setText('k-out-off', outOff);
+  document.getElementById('k-out-ok-pct').textContent  = pct(outOk)  + ' · < 30 min';
+  document.getElementById('k-out-off-pct').textContent = pct(outOff) + ' · ≥ 30 min';
+
 }
 
 /* ═══════════════════════════════════════════════════════
    BANNER DE ALERTA
 ═══════════════════════════════════════════════════════ */
 function renderAlertBanner() {
-  const banner  = document.getElementById('alert-banner');
-  const offend  = filteredIn.filter(r => { const m = getMinutesLive(r.checkin); return m !== null && m >= LIMIT_OFFEND; }).length;
-  const crit    = filteredIn.filter(r => { const m = getMinutesLive(r.checkin); return m !== null && m >= LIMIT_CRIT && m < LIMIT_OFFEND; }).length;
+  const banner = document.getElementById('alert-banner');
+  const offend = filteredIn.filter(r => { const m = getMinutesLive(r.checkin); return m !== null && m >= LIMIT_OFFEND; }).length;
 
-  if (offend > 0 || crit > 0) {
+  // Limpa conteúdo anterior de forma segura
+  while (banner.firstChild) banner.removeChild(banner.firstChild);
+
+  if (offend > 0) {
     banner.style.display = 'block';
-    const parts = [];
-    if (offend > 0) parts.push(`❌ ${offend} veículo(s) OFENSOR(ES) — mais de ${LIMIT_OFFEND} minutos no pátio!`);
-    if (crit   > 0) parts.push(`🔴 ${crit} veículo(s) CRÍTICO(S) — entre ${LIMIT_CRIT} e ${LIMIT_OFFEND-1} minutos`);
-    banner.textContent = parts.join('   •   '); // textContent — XSS safe
+    banner.className = 'alert-banner-offend';
+    const span = document.createElement('span');
+    span.textContent = `❌ ${offend} veículo(s) OFENSOR(ES) — mais de ${LIMIT_OFFEND} minutos no pátio!`;
+    banner.appendChild(span);
   } else {
     banner.style.display = 'none';
-    banner.textContent = '';
+    banner.className = '';
   }
 }
 
@@ -1068,14 +901,6 @@ function startTimerLoop() {
       }
     });
 
-    // Atualiza células de atraso Middle Mile
-    document.querySelectorAll('#tb-mm-late tr[data-est-checkout]').forEach(tr => {
-      const estCheckout = tr.dataset.estCheckout;
-      const delay = Math.round((Date.now() - (parseDate(estCheckout)?.getTime() ?? Date.now())) / 60000);
-      const cell = tr.querySelector('[data-mm-delay-cell]');
-      if (cell) cell.textContent = delay > 0 ? delay + ' min atrasado' : 'No prazo';
-    });
-
     // Reatualiza KPIs e banner sem re-render completo
     renderKPIs();
     renderAlertBanner();
@@ -1096,15 +921,11 @@ document.getElementById('refresh-sel').addEventListener('change', function() {
 /* ═══════════════════════════════════════════════════════
    EVENTOS DE FILTRO
 ═══════════════════════════════════════════════════════ */
-['f-tipo','f-op','f-transp'].forEach(id =>
-  document.getElementById(id).addEventListener('change', applyFilters)
-);
+document.getElementById('f-transp').addEventListener('change', applyFilters);
 
 document.getElementById('btn-clear').addEventListener('click', () => {
-  document.getElementById('f-tipo').value   = 'last_mile';
-  document.getElementById('f-op').value     = '';
   document.getElementById('f-transp').value = '';
-  selectDay(0);   // volta para D-0
+  applyFilters();
 });
 
 /* ═══════════════════════════════════════════════════════
